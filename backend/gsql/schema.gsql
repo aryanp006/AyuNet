@@ -1,0 +1,118 @@
+// AyuNet Graph Schema for TigerGraph
+// 10 Vertex Types, 15 Edge Types
+
+// ========== VERTEX TYPES ==========
+
+CREATE VERTEX Patient (
+  PRIMARY_ID patient_id STRING,
+  name STRING,
+  phone STRING,
+  language STRING,
+  age INT,
+  gender STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Symptom (
+  PRIMARY_ID symptom_id STRING,
+  name STRING,
+  category STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Disease (
+  PRIMARY_ID disease_id STRING,
+  name STRING,
+  icd_code STRING,
+  prevalence FLOAT,
+  description STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Drug (
+  PRIMARY_ID drug_id STRING,
+  name STRING,
+  drug_class STRING,
+  common_side_effects STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Specialist (
+  PRIMARY_ID specialist_id STRING,
+  name STRING,
+  specialization STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Treatment (
+  PRIMARY_ID treatment_id STRING,
+  name STRING,
+  treatment_type STRING,
+  cost_tier STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX RiskFactor (
+  PRIMARY_ID risk_factor_id STRING,
+  name STRING,
+  category STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX LabTest (
+  PRIMARY_ID lab_test_id STRING,
+  name STRING,
+  test_type STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Protocol (
+  PRIMARY_ID protocol_id STRING,
+  name STRING,
+  followup_days STRING,
+  questions_template STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX FollowUp (
+  PRIMARY_ID followup_id STRING,
+  status STRING,
+  scheduled_date STRING,
+  pain_score INT,
+  took_medication BOOL,
+  new_symptoms STRING,
+  call_transcript STRING,
+  risk_flag BOOL
+) WITH primary_id_as_attribute="true"
+
+// ========== EDGE TYPES ==========
+
+CREATE UNDIRECTED EDGE HAS_SYMPTOM (FROM Disease, TO Symptom, weight FLOAT)
+
+CREATE DIRECTED EDGE PRESENTS_WITH (FROM Patient, TO Symptom, duration_days INT, severity STRING, reported_date STRING)
+
+CREATE DIRECTED EDGE HAS_CONDITION (FROM Patient, TO Disease, diagnosed_date STRING, status STRING)
+
+CREATE DIRECTED EDGE TAKES_MEDICATION (FROM Patient, TO Drug, dosage STRING, start_date STRING)
+
+CREATE DIRECTED EDGE TREATED_BY (FROM Disease, TO Treatment, success_rate FLOAT, accessibility_score FLOAT)
+
+CREATE DIRECTED EDGE PRESCRIBED (FROM Treatment, TO Drug, dosage STRING, duration STRING)
+
+CREATE UNDIRECTED EDGE INTERACTS_WITH (FROM Drug, TO Drug, severity STRING, mechanism STRING, clinical_note STRING)
+
+CREATE DIRECTED EDGE RISK_INCREASES (FROM Disease, TO RiskFactor)
+
+CREATE DIRECTED EDGE ELEVATES (FROM RiskFactor, TO Disease, multiplier FLOAT)
+
+CREATE DIRECTED EDGE REQUIRES_TEST (FROM Disease, TO LabTest)
+
+CREATE DIRECTED EDGE HAS_COMPLETED_TEST (FROM Patient, TO LabTest, test_date STRING, result STRING)
+
+CREATE DIRECTED EDGE REFERS_TO (FROM Disease, TO Specialist)
+
+CREATE DIRECTED EDGE HAS_PROTOCOL (FROM Disease, TO Protocol)
+
+CREATE DIRECTED EDGE HAS_FOLLOWUP (FROM Patient, TO FollowUp, linked_disease STRING)
+
+CREATE DIRECTED EDGE CAUSES_SIDE_EFFECT (FROM Drug, TO Symptom, frequency STRING)
+
+// ========== CREATE GRAPH ==========
+
+CREATE GRAPH AyuNet (
+  Patient, Symptom, Disease, Drug, Specialist, Treatment, RiskFactor, LabTest, Protocol, FollowUp,
+  HAS_SYMPTOM, PRESENTS_WITH, HAS_CONDITION, TAKES_MEDICATION, TREATED_BY, PRESCRIBED,
+  INTERACTS_WITH, RISK_INCREASES, ELEVATES, REQUIRES_TEST, HAS_COMPLETED_TEST,
+  REFERS_TO, HAS_PROTOCOL, HAS_FOLLOWUP, CAUSES_SIDE_EFFECT
+)

@@ -1,0 +1,28 @@
+CREATE QUERY getDueFollowups() FOR GRAPH AyuNet {
+  /*
+   * Q8: Due Follow-ups
+   * Finds all patients with pending follow-ups scheduled for today or overdue
+   * Traverses Patient -> FollowUp to find pending ones
+   */
+
+  TYPEDEF TUPLE<STRING patient_id, STRING patient_name, STRING phone, STRING language, STRING followup_id, STRING scheduled_date> FollowUpDue;
+
+  ListAccum<FollowUpDue> @@due_patients;
+
+  DATETIME today = now();
+  STRING today_str = to_string(year(today)) + "-" +
+    CASE WHEN month(today) < 10 THEN "0" ELSE "" END + to_string(month(today)) + "-" +
+    CASE WHEN day(today) < 10 THEN "0" ELSE "" END + to_string(day(today));
+
+  // Start from all patients and find their pending followups
+  AllPatients = {Patient.*};
+  DuePatients = SELECT p FROM AllPatients:p -(HAS_FOLLOWUP:hf)- FollowUp:fu
+                WHERE fu.status == "pending" AND fu.scheduled_date <= today_str
+                ACCUM
+                  @@due_patients += FollowUpDue(
+                    p.patient_id, p.name, p.phone, p.language,
+                    fu.followup_id, fu.scheduled_date
+                  );
+
+  PRINT @@due_patients AS patients;
+}

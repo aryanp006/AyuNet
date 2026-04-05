@@ -1,0 +1,66 @@
+CREATE QUERY detectRareDiseases(SET<STRING> symptom_names) FOR GRAPH AyuNet {
+  /*
+   * Q4: Rare Disease Detection (4-hop)
+   * Input: symptom array
+   * 4-hop traversal scoped to diseases with prevalence < 0.001
+   * Output: rare conditions with ICD code, matched atypical symptoms
+   */
+
+  TYPEDEF TUPLE<STRING disease_name, STRING icd_code, FLOAT prevalence, STRING description, INT matched_symptoms, FLOAT total_weight> RareResult;
+
+  HeapAccum<RareResult>(10, total_weight DESC) @@rare_diseases;
+
+  // Animation sequence (4 hops)
+  ListAccum<STRING> @@hop1_nodes;  // Input symptoms
+  ListAccum<STRING> @@hop2_nodes;  // Diseases (common, as bridge)
+  ListAccum<STRING> @@hop3_nodes;  // Shared symptoms with rare diseases
+  ListAccum<STRING> @@hop4_nodes;  // Rare diseases
+
+  SumAccum<FLOAT> @weight_sum;
+  SumAccum<INT> @symptom_count;
+  SetAccum<STRING> @matched_symptom_names;
+
+  // Hop 1: Find input symptoms
+  AllSymptoms = {Symptom.*};
+  InputSymptoms = SELECT s FROM AllSymptoms:s
+                  WHERE s.name IN symptom_names
+                  ACCUM @@hop1_nodes += s.name;
+
+  // Hop 2: Find ALL diseases connected to these symptoms
+  ConnectedDiseases = SELECT d FROM InputSymptoms:s -(HAS_SYMPTOM:e)- Disease:d
+                      ACCUM @@hop2_nodes += d.name;
+
+  // Hop 3: From those diseases, find OTHER symptoms they have
+  SharedSymptoms = SELECT s FROM ConnectedDiseases:d -(HAS_SYMPTOM:e)- Symptom:s
+                   WHERE s.name NOT IN symptom_names
+                   ACCUM @@hop3_nodes += s.name;
+
+  // Hop 4: From shared symptoms, find RARE diseases (prevalence < 0.001)
+  RareDiseases = SELECT d FROM InputSymptoms:s -(HAS_SYMPTOM:e)- Disease:d
+                 WHERE d.prevalence < 0.001
+                 ACCUM
+                   d.@weight_sum += e.weight,
+                   d.@symptom_count += 1,
+                   d.@matched_symptom_names += s.name,
+                   @@hop4_nodes += d.name;
+
+  // Also check via shared symptoms for deeper rare disease discovery
+  RareDiseases2 = SELECT d FROM SharedSymptoms:s -(HAS_SYMPTOM:e)- Disease:d
+                  WHERE d.prevalence < 0.001
+                  ACCUM
+                    d.@weight_sum += e.weight * 0.5,  // lower weight for indirect match
+                    d.@symptom_count += 1,
+                    d.@matched_symptom_names += s.name,
+                    @@hop4_nodes += d.name;
+
+  // Collect results
+  AllRare = RareDiseases UNION RareDiseases2;
+  AllRare = SELECT d FROM AllRare:d
+            ACCUM @@rare_diseases += RareResult(d.name, d.icd_code, d.prevalence, d.description, d.@symptom_count, d.@weight_sum);
+
+  PRINT @@rare_diseases AS rare_diseases;
+  PRINT @@hop1_nodes AS hop1_input_symptoms;
+  PRINT @@hop2_nodes AS hop2_connected_diseases;
+  PRINT @@hop3_nodes AS hop3_shared_symptoms;
+  PRINT @@hop4_nodes AS hop4_rare_diseases;
+}

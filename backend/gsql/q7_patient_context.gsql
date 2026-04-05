@@ -1,0 +1,83 @@
+CREATE QUERY getPatientContext(STRING patient_id) FOR GRAPH AyuNet {
+  /*
+   * Q7: Patient Full Context (powers the Twilio call)
+   * Multi-hop read that gathers EVERYTHING about a patient:
+   * conditions, medications, drug interactions, side effects,
+   * risk factors, predicted diseases, overdue tests, follow-up history
+   */
+
+  SetAccum<STRING> @@conditions;
+  SetAccum<STRING> @@medications;
+  SetAccum<STRING> @@drug_interactions;
+  SetAccum<STRING> @@side_effects;
+  SetAccum<STRING> @@risk_factors;
+  SetAccum<STRING> @@predicted_risks;
+  SetAccum<STRING> @@completed_tests;
+  SetAccum<STRING> @@overdue_tests;
+  ListAccum<STRING> @@followup_history;
+
+  STRING patient_name = "";
+  STRING patient_phone = "";
+  STRING patient_language = "";
+  INT patient_age = 0;
+
+  // Get patient
+  PatientSet = {Patient.*};
+  ThePatient = SELECT p FROM PatientSet:p
+               WHERE p.patient_id == patient_id
+               POST-ACCUM
+                 patient_name = p.name,
+                 patient_phone = p.phone,
+                 patient_language = p.language,
+                 patient_age = p.age;
+
+  // Hop 1: Patient -> Disease (conditions)
+  Diseases = SELECT d FROM ThePatient:p -(HAS_CONDITION:e)- Disease:d
+             WHERE e.status == "active"
+             ACCUM @@conditions += d.name;
+
+  // Hop 2: Patient -> Drug (medications)
+  Drugs = SELECT dr FROM ThePatient:p -(TAKES_MEDICATION:e)- Drug:dr
+          ACCUM @@medications += dr.name;
+
+  // Hop 3: Drug -> Drug (interactions among patient's drugs)
+  DrugInteractions = SELECT dr2 FROM Drugs:dr1 -(INTERACTS_WITH:e)- Drug:dr2
+                     WHERE dr2 IN Drugs AND dr1.name < dr2.name
+                     ACCUM @@drug_interactions += (dr1.name + " + " + dr2.name + ": " + e.severity + " - " + e.mechanism);
+
+  // Hop 4: Drug -> Symptom (side effects)
+  SideEffects = SELECT s FROM Drugs:dr -(CAUSES_SIDE_EFFECT:e)- Symptom:s
+                ACCUM @@side_effects += (dr.name + " may cause " + s.name + " (" + e.frequency + ")");
+
+  // Hop 5: Disease -> RiskFactor -> Disease
+  RiskFactors = SELECT rf FROM Diseases:d -(RISK_INCREASES)- RiskFactor:rf
+                ACCUM @@risk_factors += rf.name;
+
+  PredictedDiseases = SELECT d FROM RiskFactors:rf -(ELEVATES:e)- Disease:d
+                      WHERE NOT (d IN Diseases)
+                      ACCUM @@predicted_risks += (d.name + " (risk multiplier: " + to_string(e.multiplier) + " via " + rf.name + ")");
+
+  // Hop 6: Tests
+  CompletedTests = SELECT lt FROM ThePatient:p -(HAS_COMPLETED_TEST)- LabTest:lt
+                   ACCUM @@completed_tests += lt.name;
+
+  OverdueTests = SELECT lt FROM Diseases:d -(REQUIRES_TEST)- LabTest:lt
+                 WHERE lt.name NOT IN @@completed_tests
+                 ACCUM @@overdue_tests += lt.name;
+
+  // Follow-up history
+  FollowUps = SELECT fu FROM ThePatient:p -(HAS_FOLLOWUP)- FollowUp:fu
+              ACCUM @@followup_history += ("Date: " + fu.scheduled_date + " | Status: " + fu.status +
+                " | Pain: " + to_string(fu.pain_score) + " | New symptoms: " + fu.new_symptoms);
+
+  PRINT patient_name, patient_phone, patient_language, patient_age;
+  PRINT @@conditions AS conditions;
+  PRINT @@medications AS medications;
+  PRINT @@drug_interactions AS drug_interactions;
+  PRINT @@side_effects AS side_effects;
+  PRINT @@risk_factors AS risk_factors;
+  PRINT @@predicted_risks AS predicted_risks;
+  PRINT @@completed_tests AS completed_tests;
+  PRINT @@overdue_tests AS overdue_tests;
+  PRINT @@followup_history AS followup_history;
+}

@@ -1,0 +1,43 @@
+CREATE QUERY checkDrugInteractions(SET<STRING> drug_names) FOR GRAPH AyuNet {
+  /*
+   * Q2: Drug Interaction Checker
+   * Input: set of drug names
+   * Pattern match: Drug -[INTERACTS_WITH]- Drug across the input set
+   * Output: interaction pairs with severity, mechanism, alternatives
+   */
+
+  TYPEDEF TUPLE<STRING drug1, STRING drug2, STRING severity, STRING mechanism, STRING clinical_note> InteractionResult;
+
+  ListAccum<InteractionResult> @@interactions;
+  ListAccum<STRING> @@graph_nodes;
+  ListAccum<STRING> @@graph_edges;
+
+  // Find matching Drug vertices
+  AllDrugs = {Drug.*};
+  InputDrugs = SELECT d FROM AllDrugs:d
+               WHERE d.name IN drug_names
+               ACCUM @@graph_nodes += d.name;
+
+  // Find interactions between input drugs
+  Interacting = SELECT d2 FROM InputDrugs:d1 -(INTERACTS_WITH:e)- Drug:d2
+                WHERE d2.name IN drug_names AND d1.name < d2.name
+                ACCUM
+                  @@interactions += InteractionResult(d1.name, d2.name, e.severity, e.mechanism, e.clinical_note),
+                  @@graph_edges += (d1.name + " -[" + e.severity + "]- " + d2.name);
+
+  // Find drugs with severe/moderate interactions
+  SevereInteracting = SELECT d2 FROM InputDrugs:d1 -(INTERACTS_WITH:e)- Drug:d2
+                      WHERE d2.name IN drug_names AND e.severity IN ("severe", "moderate");
+
+  // Reverse traverse: Drug <-(PRESCRIBED)- Treatment
+  RelatedTreatments = SELECT t FROM SevereInteracting:d2 <-(PRESCRIBED)- Treatment:t;
+
+  // Forward traverse: Treatment -(PRESCRIBED)-> Drug (alternatives)
+  AlternateDrugs = SELECT alt FROM RelatedTreatments:t -(PRESCRIBED)- Drug:alt
+                   WHERE alt.name NOT IN drug_names;
+
+  PRINT @@interactions AS interactions;
+  PRINT @@graph_nodes AS nodes;
+  PRINT @@graph_edges AS edges;
+  PRINT AlternateDrugs[AlternateDrugs.name, AlternateDrugs.drug_class] AS alternatives;
+}

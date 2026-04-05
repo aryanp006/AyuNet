@@ -1,0 +1,49 @@
+CREATE QUERY diagnoseFromSymptoms(SET<STRING> symptom_names) FOR GRAPH AyuNet {
+  /*
+   * Q1: Symptom-to-Diagnosis Multi-hop Traversal
+   * Input: set of symptom names
+   * Traverse: Symptom -[HAS_SYMPTOM]-> Disease, accumulate edge weights
+   * Output: Top 5 diseases ranked by confidence + matched symptom count + graph data for visualization
+   */
+
+  TYPEDEF TUPLE<STRING disease_id, STRING disease_name, STRING icd_code, FLOAT prevalence, FLOAT confidence_score, INT matched_count, STRING description> DiagnosisResult;
+
+  HeapAccum<DiagnosisResult>(5, confidence_score DESC) @@top_diagnoses;
+  SetAccum<STRING> @@matched_symptoms;
+  ListAccum<EDGE> @@traversed_edges;
+  ListAccum<VERTEX> @@traversed_nodes;
+
+  // Animation sequence for frontend hop-by-hop rendering
+  ListAccum<STRING> @@hop1_nodes;  // Symptom nodes
+  ListAccum<STRING> @@hop2_edges;  // HAS_SYMPTOM edges
+  ListAccum<STRING> @@hop2_nodes;  // Disease nodes
+
+  SumAccum<FLOAT> @score;
+  SumAccum<INT> @match_count;
+
+  // Hop 1: Find matching Symptom vertices
+  Symptoms = {Symptom.*};
+  MatchedSymptoms = SELECT s FROM Symptoms:s
+                    WHERE s.name IN symptom_names
+                    ACCUM @@hop1_nodes += s.name;
+
+  // Hop 2: Traverse HAS_SYMPTOM to Disease vertices
+  Diseases = SELECT d FROM MatchedSymptoms:s -(HAS_SYMPTOM:e)- Disease:d
+             ACCUM
+               d.@score += e.weight,
+               d.@match_count += 1,
+               @@hop2_edges += (s.name + "->" + d.name),
+               @@hop2_nodes += d.name,
+               @@traversed_edges += e,
+               @@traversed_nodes += s,
+               @@traversed_nodes += d;
+
+  // Rank and collect top 5
+  Diseases = SELECT d FROM Diseases:d
+             ACCUM @@top_diagnoses += DiagnosisResult(d.disease_id, d.name, d.icd_code, d.prevalence, d.@score, d.@match_count, d.description);
+
+  PRINT @@top_diagnoses AS diagnoses;
+  PRINT @@hop1_nodes AS hop1_symptoms;
+  PRINT @@hop2_edges AS hop2_edges;
+  PRINT @@hop2_nodes AS hop2_diseases;
+}
