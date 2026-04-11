@@ -46,8 +46,8 @@ export default function DrugCheckTab() {
     <div className="h-full flex gap-6">
       {/* Left Panel */}
       <div className="w-[380px] shrink-0 flex flex-col gap-4">
-        <div className="bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl p-5">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm dark:shadow-none">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">
             Select Drugs to Check
           </h3>
           <input
@@ -55,7 +55,7 @@ export default function DrugCheckTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search drugs..."
-            className="w-full bg-slate-800 border border-white/10 rounded-xl p-2.5 text-sm text-white placeholder:text-slate-500 mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl p-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
           />
           <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
             {filtered.map((drug) => (
@@ -64,8 +64,8 @@ export default function DrugCheckTab() {
                 onClick={() => toggleDrug(drug)}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                   selected.includes(drug)
-                    ? "bg-green-500/30 text-green-300 border border-green-500"
-                    : "bg-slate-800 text-slate-400 border border-white/10 hover:border-green-500/50"
+                    ? "bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-300 border border-green-500"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10 hover:border-green-500/50"
                 }`}
               >
                 {drug}
@@ -89,47 +89,47 @@ export default function DrugCheckTab() {
         {/* Interaction results */}
         {result?.interactions?.interactions && (
           <div className="flex-1 overflow-y-auto space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Interactions Found
             </h4>
             {result.interactions.interactions.map((ix: any, i: number) => (
               <div
                 key={i}
-                className={`rounded-xl p-4 border transition-colors ${
+                className={`rounded-xl p-4 border transition-colors shadow-sm dark:shadow-none ${
                   ix.severity === "severe"
-                    ? "bg-red-500/10 border-red-500/50"
+                    ? "bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/50"
                     : ix.severity === "moderate"
-                    ? "bg-yellow-500/10 border-yellow-500/50"
-                    : "bg-green-500/10 border-green-500/50"
+                    ? "bg-yellow-50 dark:bg-yellow-500/10 border-yellow-300 dark:border-yellow-500/50"
+                    : "bg-green-50 dark:bg-green-500/10 border-green-300 dark:border-green-500/50"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle
                     className={`w-4 h-4 ${
                       ix.severity === "severe"
-                        ? "text-red-400"
+                        ? "text-red-500 dark:text-red-400"
                         : ix.severity === "moderate"
-                        ? "text-yellow-400"
-                        : "text-green-400"
+                        ? "text-yellow-500 dark:text-yellow-400"
+                        : "text-green-500 dark:text-green-400"
                     }`}
                   />
-                  <span className="font-bold text-white text-sm">
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">
                     {ix.drug1} + {ix.drug2}
                   </span>
                   <span
                     className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${
                       ix.severity === "severe"
-                        ? "bg-red-500/30 text-red-300"
+                        ? "bg-red-100 dark:bg-red-500/30 text-red-600 dark:text-red-300"
                         : ix.severity === "moderate"
-                        ? "bg-yellow-500/30 text-yellow-300"
-                        : "bg-green-500/30 text-green-300"
+                        ? "bg-yellow-100 dark:bg-yellow-500/30 text-yellow-700 dark:text-yellow-300"
+                        : "bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-300"
                     }`}
                   >
                     {ix.severity}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">{ix.mechanism}</p>
-                <p className="text-xs text-slate-500 mt-1">{ix.clinical_note}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{ix.mechanism}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{ix.clinical_note}</p>
               </div>
             ))}
           </div>
@@ -141,8 +141,8 @@ export default function DrugCheckTab() {
         {graphNodes.length > 0 ? (
           <GraphView nodes={graphNodes} edges={graphEdges} layout="cola" />
         ) : (
-          <div className="h-full flex items-center justify-center bg-slate-950/50 rounded-2xl border border-white/10">
-            <p className="text-slate-500 text-sm">
+          <div className="h-full flex items-center justify-center bg-slate-100 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10">
+            <p className="text-slate-400 dark:text-slate-500 text-sm">
               Select 2+ drugs to visualize interactions
             </p>
           </div>

@@ -1,6 +1,6 @@
 """
 AyuNet Seed Data Script
-Seeds TigerGraph with comprehensive medical data for hackathon demo.
+Seeds Neo4j with comprehensive medical data for demo.
 Run: cd backend && python scripts/seed_data.py
 """
 import sys
@@ -9,508 +9,665 @@ from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import TG_HOST, TG_GRAPHNAME, TG_SECRET, TG_USERNAME, TG_PASSWORD
-import pyTigerGraph as tg
+from neo4j import GraphDatabase
+from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+
+TODAY = date.today().isoformat()
+YESTERDAY = (date.today() - timedelta(days=1)).isoformat()
 
 
 def main():
-    print("[Seed] Connecting to TigerGraph...")
-    conn = tg.TigerGraphConnection(
-        host=TG_HOST,
-        graphname=TG_GRAPHNAME,
-        username=TG_USERNAME,
-        password=TG_PASSWORD,
-    )
-    if TG_SECRET:
-        conn.getToken(TG_SECRET)
-    print("[Seed] Connected!")
+    print("[Seed] Connecting to Neo4j...")
+    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+    with driver.session() as session:
+        session.run("RETURN 1")
+    print("[Seed] Connected!\n")
 
-    # =====================
-    # SYMPTOMS (50+)
-    # =====================
-    print("[Seed] Upserting symptoms...")
-    symptoms = {
-        "fever": "general", "headache": "neurological", "body_pain": "musculoskeletal",
-        "fatigue": "general", "nausea": "gastrointestinal", "vomiting": "gastrointestinal",
-        "cough": "respiratory", "shortness_of_breath": "respiratory", "chest_pain": "cardiovascular",
-        "abdominal_pain": "gastrointestinal", "diarrhea": "gastrointestinal", "rash": "dermatological",
-        "joint_pain": "musculoskeletal", "muscle_pain": "musculoskeletal", "dizziness": "neurological",
-        "weight_loss": "general", "night_sweats": "general", "loss_of_appetite": "general",
-        "frequent_urination": "urological", "excessive_thirst": "endocrine", "blurred_vision": "ophthalmological",
-        "numbness": "neurological", "tingling": "neurological", "swelling": "general",
-        "sore_throat": "respiratory", "runny_nose": "respiratory", "sneezing": "respiratory",
-        "back_pain": "musculoskeletal", "blood_in_urine": "urological", "blood_in_stool": "gastrointestinal",
-        "jaundice": "hepatic", "dark_urine": "hepatic", "pale_skin": "hematological",
-        "bruising": "hematological", "bleeding_gums": "hematological", "hair_loss": "dermatological",
-        "skin_discoloration": "dermatological", "tremor": "neurological", "mood_changes": "psychiatric",
-        "anxiety": "psychiatric", "insomnia": "psychiatric", "confusion": "neurological",
-        "memory_loss": "neurological", "seizures": "neurological", "difficulty_swallowing": "gastrointestinal",
-        "eye_pain": "ophthalmological", "light_sensitivity": "ophthalmological",
-        "stiff_neck": "musculoskeletal", "rapid_heartbeat": "cardiovascular",
-        "low_blood_pressure": "cardiovascular", "wheezing": "respiratory",
-        "high_blood_pressure": "cardiovascular",
-    }
-    for name, cat in symptoms.items():
-        conn.upsertVertex("Symptom", name, {"name": name, "category": cat})
-    print(f"  -> {len(symptoms)} symptoms")
+    with driver.session() as session:
+        # ─── SYMPTOMS (50+) ───
+        print("[Seed] Upserting symptoms...")
+        symptoms = [
+            ("fever", "fever", "general"), ("headache", "headache", "neurological"),
+            ("cough", "cough", "respiratory"), ("fatigue", "fatigue", "general"),
+            ("body_aches", "body aches", "musculoskeletal"), ("nausea", "nausea", "gastrointestinal"),
+            ("vomiting", "vomiting", "gastrointestinal"), ("diarrhea", "diarrhea", "gastrointestinal"),
+            ("abdominal_pain", "abdominal pain", "gastrointestinal"),
+            ("chest_pain", "chest pain", "cardiovascular"),
+            ("shortness_of_breath", "shortness of breath", "respiratory"),
+            ("joint_pain", "joint pain", "musculoskeletal"),
+            ("rash", "rash", "dermatological"), ("sore_throat", "sore throat", "respiratory"),
+            ("runny_nose", "runny nose", "respiratory"), ("chills", "chills", "general"),
+            ("sweating", "sweating", "general"), ("weight_loss", "weight loss", "general"),
+            ("weight_gain", "weight gain", "general"), ("dizziness", "dizziness", "neurological"),
+            ("blurred_vision", "blurred vision", "ophthalmological"),
+            ("frequent_urination", "frequent urination", "urological"),
+            ("increased_thirst", "increased thirst", "general"),
+            ("muscle_weakness", "muscle weakness", "musculoskeletal"),
+            ("numbness", "numbness", "neurological"), ("tingling", "tingling", "neurological"),
+            ("back_pain", "back pain", "musculoskeletal"),
+            ("neck_stiffness", "neck stiffness", "musculoskeletal"),
+            ("swollen_lymph_nodes", "swollen lymph nodes", "immunological"),
+            ("night_sweats", "night sweats", "general"),
+            ("loss_of_appetite", "loss of appetite", "general"),
+            ("bleeding_gums", "bleeding gums", "hematological"),
+            ("bruising", "bruising", "hematological"),
+            ("yellow_skin", "yellow skin (jaundice)", "hepatological"),
+            ("dark_urine", "dark urine", "urological"),
+            ("pale_stool", "pale stool", "gastrointestinal"),
+            ("swelling_legs", "swelling in legs", "cardiovascular"),
+            ("palpitations", "palpitations", "cardiovascular"),
+            ("wheezing", "wheezing", "respiratory"),
+            ("blood_in_sputum", "blood in sputum", "respiratory"),
+            ("painful_urination", "painful urination", "urological"),
+            ("high_blood_pressure", "high blood pressure", "cardiovascular"),
+            ("low_blood_pressure", "low blood pressure", "cardiovascular"),
+            ("confusion", "confusion", "neurological"),
+            ("memory_loss", "memory loss", "neurological"),
+            ("anxiety", "anxiety", "psychiatric"), ("depression_symptom", "depressed mood", "psychiatric"),
+            ("insomnia", "insomnia", "psychiatric"),
+            ("skin_itching", "skin itching", "dermatological"),
+            ("hair_loss", "hair loss", "dermatological"),
+            ("dry_mouth", "dry mouth", "general"),
+            ("excessive_hunger", "excessive hunger", "general"),
+        ]
+        for sid, name, cat in symptoms:
+            session.run(
+                "MERGE (s:Symptom {symptom_id: $sid}) SET s.name = $name, s.category = $cat",
+                sid=sid, name=name, cat=cat,
+            )
+        print(f"  -> {len(symptoms)} symptoms")
 
-    # =====================
-    # DISEASES (22)
-    # =====================
-    print("[Seed] Upserting diseases...")
-    diseases = [
-        ("dengue", "Dengue Fever", "A97", 0.05, "Mosquito-borne viral infection causing high fever, severe body aches, and potential bleeding complications"),
-        ("diabetes_t2", "Type 2 Diabetes", "E11", 0.08, "Chronic metabolic disorder with insulin resistance leading to high blood sugar"),
-        ("hypertension", "Hypertension", "I10", 0.12, "Persistently elevated blood pressure increasing risk of heart disease and stroke"),
-        ("malaria", "Malaria", "B50", 0.03, "Parasitic infection transmitted by mosquitoes causing cyclic fevers"),
-        ("tuberculosis", "Tuberculosis", "A15", 0.02, "Bacterial lung infection with persistent cough, night sweats, and weight loss"),
-        ("common_cold", "Common Cold", "J00", 0.25, "Viral upper respiratory infection with runny nose and sore throat"),
-        ("pneumonia", "Pneumonia", "J18", 0.015, "Lung infection causing cough, fever, and difficulty breathing"),
-        ("asthma", "Asthma", "J45", 0.04, "Chronic airway inflammation causing wheezing and shortness of breath"),
-        ("migraine", "Migraine", "G43", 0.06, "Severe recurring headaches often with nausea and light sensitivity"),
-        ("typhoid", "Typhoid", "A01", 0.01, "Bacterial infection from contaminated food/water causing sustained fever"),
-        ("anemia", "Anemia", "D50", 0.07, "Low red blood cell count causing fatigue and pale skin"),
-        ("gastritis", "Gastritis", "K29", 0.05, "Stomach lining inflammation causing pain and nausea"),
-        ("uti", "Urinary Tract Infection", "N39", 0.03, "Bacterial infection of the urinary system"),
-        ("hepatitis_b", "Hepatitis B", "B16", 0.008, "Viral liver infection causing jaundice and liver damage"),
-        ("chickenpox", "Chickenpox", "B01", 0.02, "Viral infection with itchy rash and fever"),
-        ("cad", "Coronary Artery Disease", "I25", 0.03, "Narrowing of coronary arteries reducing blood flow to heart"),
-        ("ckd", "Chronic Kidney Disease", "N18", 0.01, "Progressive loss of kidney function over time"),
-        ("rheumatoid_arthritis", "Rheumatoid Arthritis", "M06", 0.005, "Autoimmune disorder attacking joint linings"),
-        ("depression", "Depression", "F32", 0.04, "Persistent mood disorder affecting daily functioning"),
-        # Rare diseases
-        ("hlh", "Hemophagocytic Lymphohistiocytosis", "D76.1", 0.00001, "Rare severe systemic inflammatory syndrome where immune cells attack the body's own tissues"),
-        ("wilsons", "Wilson's Disease", "E83.0", 0.00003, "Rare genetic disorder causing copper accumulation in liver and brain"),
-        ("gbs", "Guillain-Barre Syndrome", "G61.0", 0.0001, "Rare autoimmune disorder where immune system attacks peripheral nerves"),
-    ]
-    for did, name, icd, prev, desc in diseases:
-        conn.upsertVertex("Disease", did, {"name": name, "icd_code": icd, "prevalence": prev, "description": desc})
-    print(f"  -> {len(diseases)} diseases")
+        # ─── DISEASES (22) ───
+        print("[Seed] Upserting diseases...")
+        diseases = [
+            ("dengue", "Dengue Fever", "A90", 0.12, "Mosquito-borne viral infection causing high fever and body pain"),
+            ("malaria", "Malaria", "B50", 0.08, "Parasitic infection transmitted by mosquitoes"),
+            ("typhoid", "Typhoid Fever", "A01.0", 0.06, "Bacterial infection from contaminated food/water"),
+            ("diabetes_t2", "Type 2 Diabetes", "E11", 0.15, "Chronic metabolic disorder with insulin resistance"),
+            ("hypertension", "Hypertension", "I10", 0.20, "Chronically elevated blood pressure"),
+            ("cad", "Coronary Artery Disease", "I25.1", 0.10, "Narrowing of coronary arteries"),
+            ("pneumonia", "Pneumonia", "J18", 0.09, "Lung infection causing inflammation"),
+            ("tuberculosis", "Tuberculosis", "A15", 0.04, "Bacterial infection primarily affecting the lungs"),
+            ("asthma", "Asthma", "J45", 0.11, "Chronic airway inflammation"),
+            ("ckd", "Chronic Kidney Disease", "N18", 0.07, "Progressive loss of kidney function"),
+            ("rheumatoid", "Rheumatoid Arthritis", "M06.9", 0.03, "Autoimmune disorder attacking joints"),
+            ("depression", "Depression", "F32", 0.13, "Mental health disorder with persistent sadness"),
+            ("anemia", "Anemia", "D64.9", 0.14, "Reduced red blood cells or hemoglobin"),
+            ("gastritis", "Gastritis", "K29", 0.10, "Inflammation of stomach lining"),
+            ("hepatitis_b", "Hepatitis B", "B16", 0.02, "Viral liver infection"),
+            ("lupus", "Systemic Lupus Erythematosus", "M32", 0.01, "Autoimmune disease affecting multiple organs"),
+            ("hypothyroid", "Hypothyroidism", "E03.9", 0.08, "Underactive thyroid gland"),
+            ("dvt", "Deep Vein Thrombosis", "I82", 0.02, "Blood clot in deep veins"),
+            ("gout", "Gout", "M10", 0.04, "Inflammatory arthritis from uric acid crystals"),
+            ("migraine", "Migraine", "G43", 0.12, "Severe recurring headache disorder"),
+            ("chikungunya", "Chikungunya", "A92.0", 0.03, "Mosquito-borne viral infection with joint pain"),
+            ("celiac", "Celiac Disease", "K90.0", 0.01, "Autoimmune disorder triggered by gluten"),
+        ]
+        for did, name, icd, prev, desc in diseases:
+            session.run(
+                "MERGE (d:Disease {disease_id: $did}) "
+                "SET d.name = $name, d.icd_code = $icd, d.prevalence = $prev, d.description = $desc",
+                did=did, name=name, icd=icd, prev=prev, desc=desc,
+            )
+        print(f"  -> {len(diseases)} diseases")
 
-    # =====================
-    # DISEASE-SYMPTOM MAPPINGS (HAS_SYMPTOM)
-    # =====================
-    print("[Seed] Creating disease-symptom edges...")
-    disease_symptoms = {
-        "dengue": [("fever", 0.95), ("headache", 0.85), ("body_pain", 0.8), ("joint_pain", 0.75), ("fatigue", 0.7), ("rash", 0.6), ("nausea", 0.5), ("bleeding_gums", 0.3), ("muscle_pain", 0.65)],
-        "diabetes_t2": [("frequent_urination", 0.8), ("excessive_thirst", 0.85), ("fatigue", 0.7), ("blurred_vision", 0.5), ("weight_loss", 0.4), ("numbness", 0.3), ("tingling", 0.35)],
-        "hypertension": [("headache", 0.5), ("dizziness", 0.4), ("chest_pain", 0.3), ("blurred_vision", 0.25), ("shortness_of_breath", 0.35), ("rapid_heartbeat", 0.3), ("high_blood_pressure", 0.95)],
-        "malaria": [("fever", 0.95), ("headache", 0.7), ("nausea", 0.6), ("vomiting", 0.5), ("body_pain", 0.65), ("fatigue", 0.7), ("diarrhea", 0.3)],
-        "tuberculosis": [("cough", 0.9), ("night_sweats", 0.8), ("weight_loss", 0.75), ("fever", 0.7), ("fatigue", 0.65), ("chest_pain", 0.4), ("blood_in_stool", 0.15)],
-        "common_cold": [("runny_nose", 0.9), ("sneezing", 0.85), ("sore_throat", 0.8), ("cough", 0.6), ("headache", 0.4), ("fever", 0.3), ("fatigue", 0.35)],
-        "pneumonia": [("cough", 0.9), ("fever", 0.85), ("shortness_of_breath", 0.8), ("chest_pain", 0.7), ("fatigue", 0.6), ("nausea", 0.3)],
-        "asthma": [("shortness_of_breath", 0.9), ("wheezing", 0.85), ("cough", 0.7), ("chest_pain", 0.4)],
-        "migraine": [("headache", 0.95), ("nausea", 0.6), ("light_sensitivity", 0.7), ("blurred_vision", 0.4), ("dizziness", 0.35), ("vomiting", 0.3)],
-        "typhoid": [("fever", 0.95), ("abdominal_pain", 0.7), ("headache", 0.6), ("loss_of_appetite", 0.65), ("diarrhea", 0.5), ("rash", 0.2)],
-        "anemia": [("fatigue", 0.9), ("pale_skin", 0.8), ("dizziness", 0.6), ("shortness_of_breath", 0.5), ("rapid_heartbeat", 0.4), ("headache", 0.35)],
-        "gastritis": [("abdominal_pain", 0.9), ("nausea", 0.75), ("vomiting", 0.5), ("loss_of_appetite", 0.6), ("blood_in_stool", 0.2)],
-        "uti": [("frequent_urination", 0.9), ("abdominal_pain", 0.5), ("blood_in_urine", 0.4), ("fever", 0.3), ("back_pain", 0.35)],
-        "hepatitis_b": [("jaundice", 0.8), ("fatigue", 0.7), ("abdominal_pain", 0.6), ("nausea", 0.55), ("dark_urine", 0.7), ("loss_of_appetite", 0.5), ("joint_pain", 0.3)],
-        "chickenpox": [("rash", 0.95), ("fever", 0.7), ("fatigue", 0.5), ("headache", 0.4), ("loss_of_appetite", 0.35)],
-        "cad": [("chest_pain", 0.85), ("shortness_of_breath", 0.7), ("fatigue", 0.5), ("dizziness", 0.4), ("rapid_heartbeat", 0.45), ("nausea", 0.2)],
-        "ckd": [("fatigue", 0.8), ("swelling", 0.7), ("frequent_urination", 0.6), ("nausea", 0.5), ("loss_of_appetite", 0.55), ("back_pain", 0.3), ("blood_in_urine", 0.25)],
-        "rheumatoid_arthritis": [("joint_pain", 0.95), ("swelling", 0.8), ("fatigue", 0.6), ("stiff_neck", 0.4), ("muscle_pain", 0.5), ("fever", 0.2)],
-        "depression": [("fatigue", 0.8), ("insomnia", 0.75), ("loss_of_appetite", 0.6), ("mood_changes", 0.9), ("anxiety", 0.7), ("weight_loss", 0.4), ("memory_loss", 0.3), ("confusion", 0.2)],
-        # Rare diseases
-        "hlh": [("fever", 0.9), ("fatigue", 0.8), ("swelling", 0.6), ("rash", 0.4), ("jaundice", 0.5), ("bleeding_gums", 0.3), ("seizures", 0.2)],
-        "wilsons": [("fatigue", 0.7), ("jaundice", 0.8), ("tremor", 0.75), ("dark_urine", 0.6), ("mood_changes", 0.5), ("difficulty_swallowing", 0.3), ("confusion", 0.4)],
-        "gbs": [("numbness", 0.85), ("tingling", 0.8), ("muscle_pain", 0.7), ("fatigue", 0.6), ("difficulty_swallowing", 0.4), ("back_pain", 0.5)],
-    }
-    edge_count = 0
-    for did, syms in disease_symptoms.items():
-        for sname, weight in syms:
-            conn.upsertEdge("Disease", did, "HAS_SYMPTOM", "Symptom", sname, {"weight": weight})
-            edge_count += 1
-    print(f"  -> {edge_count} disease-symptom edges")
+        # ─── DISEASE-SYMPTOM EDGES ───
+        print("[Seed] Creating disease-symptom edges...")
+        disease_symptoms = [
+            # Dengue
+            ("dengue", "fever", 0.95), ("dengue", "headache", 0.85), ("dengue", "body_aches", 0.90),
+            ("dengue", "rash", 0.60), ("dengue", "nausea", 0.70), ("dengue", "fatigue", 0.80),
+            ("dengue", "bleeding_gums", 0.30), ("dengue", "joint_pain", 0.75), ("dengue", "chills", 0.65),
+            # Malaria
+            ("malaria", "fever", 0.95), ("malaria", "chills", 0.90), ("malaria", "sweating", 0.85),
+            ("malaria", "headache", 0.80), ("malaria", "nausea", 0.65), ("malaria", "vomiting", 0.55),
+            ("malaria", "body_aches", 0.70), ("malaria", "fatigue", 0.75),
+            # Typhoid
+            ("typhoid", "fever", 0.95), ("typhoid", "headache", 0.75), ("typhoid", "abdominal_pain", 0.80),
+            ("typhoid", "diarrhea", 0.60), ("typhoid", "loss_of_appetite", 0.70), ("typhoid", "fatigue", 0.65),
+            ("typhoid", "rash", 0.30),
+            # Type 2 Diabetes
+            ("diabetes_t2", "frequent_urination", 0.85), ("diabetes_t2", "increased_thirst", 0.80),
+            ("diabetes_t2", "fatigue", 0.75), ("diabetes_t2", "blurred_vision", 0.60),
+            ("diabetes_t2", "weight_loss", 0.55), ("diabetes_t2", "numbness", 0.50),
+            ("diabetes_t2", "excessive_hunger", 0.65), ("diabetes_t2", "dry_mouth", 0.50),
+            # Hypertension
+            ("hypertension", "headache", 0.60), ("hypertension", "dizziness", 0.55),
+            ("hypertension", "chest_pain", 0.40), ("hypertension", "shortness_of_breath", 0.45),
+            ("hypertension", "palpitations", 0.50), ("hypertension", "blurred_vision", 0.35),
+            ("hypertension", "high_blood_pressure", 0.95),
+            # CAD
+            ("cad", "chest_pain", 0.90), ("cad", "shortness_of_breath", 0.80),
+            ("cad", "fatigue", 0.65), ("cad", "palpitations", 0.60),
+            ("cad", "swelling_legs", 0.45), ("cad", "dizziness", 0.50),
+            # Pneumonia
+            ("pneumonia", "cough", 0.90), ("pneumonia", "fever", 0.85),
+            ("pneumonia", "shortness_of_breath", 0.80), ("pneumonia", "chest_pain", 0.65),
+            ("pneumonia", "fatigue", 0.60), ("pneumonia", "chills", 0.55),
+            # TB
+            ("tuberculosis", "cough", 0.90), ("tuberculosis", "blood_in_sputum", 0.60),
+            ("tuberculosis", "night_sweats", 0.75), ("tuberculosis", "weight_loss", 0.70),
+            ("tuberculosis", "fever", 0.65), ("tuberculosis", "fatigue", 0.70),
+            ("tuberculosis", "loss_of_appetite", 0.60),
+            # Asthma
+            ("asthma", "wheezing", 0.90), ("asthma", "shortness_of_breath", 0.85),
+            ("asthma", "cough", 0.75), ("asthma", "chest_pain", 0.40),
+            # CKD
+            ("ckd", "fatigue", 0.80), ("ckd", "swelling_legs", 0.75),
+            ("ckd", "frequent_urination", 0.65), ("ckd", "nausea", 0.55),
+            ("ckd", "loss_of_appetite", 0.60), ("ckd", "muscle_weakness", 0.50),
+            # RA
+            ("rheumatoid", "joint_pain", 0.95), ("rheumatoid", "fatigue", 0.70),
+            ("rheumatoid", "muscle_weakness", 0.55), ("rheumatoid", "numbness", 0.35),
+            # Depression
+            ("depression", "depression_symptom", 0.95), ("depression", "insomnia", 0.75),
+            ("depression", "fatigue", 0.80), ("depression", "loss_of_appetite", 0.65),
+            ("depression", "anxiety", 0.70), ("depression", "memory_loss", 0.40),
+            ("depression", "weight_gain", 0.45),
+            # Anemia
+            ("anemia", "fatigue", 0.90), ("anemia", "dizziness", 0.70),
+            ("anemia", "shortness_of_breath", 0.55), ("anemia", "pale_stool", 0.30),
+            ("anemia", "hair_loss", 0.40), ("anemia", "muscle_weakness", 0.50),
+            # Gastritis
+            ("gastritis", "abdominal_pain", 0.90), ("gastritis", "nausea", 0.75),
+            ("gastritis", "vomiting", 0.55), ("gastritis", "loss_of_appetite", 0.60),
+            # Hepatitis B
+            ("hepatitis_b", "yellow_skin", 0.80), ("hepatitis_b", "fatigue", 0.70),
+            ("hepatitis_b", "abdominal_pain", 0.65), ("hepatitis_b", "dark_urine", 0.60),
+            ("hepatitis_b", "nausea", 0.55), ("hepatitis_b", "loss_of_appetite", 0.50),
+            # Lupus (rare)
+            ("lupus", "rash", 0.85), ("lupus", "joint_pain", 0.80),
+            ("lupus", "fatigue", 0.75), ("lupus", "fever", 0.50),
+            ("lupus", "hair_loss", 0.45), ("lupus", "muscle_weakness", 0.40),
+            # Hypothyroid
+            ("hypothyroid", "fatigue", 0.85), ("hypothyroid", "weight_gain", 0.75),
+            ("hypothyroid", "dry_mouth", 0.50), ("hypothyroid", "hair_loss", 0.60),
+            ("hypothyroid", "depression_symptom", 0.45), ("hypothyroid", "muscle_weakness", 0.55),
+            # DVT (rare)
+            ("dvt", "swelling_legs", 0.90), ("dvt", "chest_pain", 0.40),
+            ("dvt", "shortness_of_breath", 0.35),
+            # Gout
+            ("gout", "joint_pain", 0.95), ("gout", "rash", 0.30), ("gout", "fever", 0.25),
+            # Migraine
+            ("migraine", "headache", 0.95), ("migraine", "nausea", 0.60),
+            ("migraine", "blurred_vision", 0.45), ("migraine", "dizziness", 0.40),
+            # Chikungunya
+            ("chikungunya", "fever", 0.90), ("chikungunya", "joint_pain", 0.95),
+            ("chikungunya", "rash", 0.55), ("chikungunya", "headache", 0.60),
+            ("chikungunya", "fatigue", 0.65),
+            # Celiac (rare)
+            ("celiac", "diarrhea", 0.80), ("celiac", "abdominal_pain", 0.75),
+            ("celiac", "weight_loss", 0.60), ("celiac", "fatigue", 0.65),
+            ("celiac", "rash", 0.40), ("celiac", "joint_pain", 0.30),
+        ]
+        for did, sid, weight in disease_symptoms:
+            session.run(
+                "MATCH (d:Disease {disease_id: $did}), (s:Symptom {symptom_id: $sid}) "
+                "MERGE (d)-[r:HAS_SYMPTOM]->(s) SET r.weight = $weight",
+                did=did, sid=sid, weight=weight,
+            )
+        print(f"  -> {len(disease_symptoms)} disease-symptom edges")
 
-    # =====================
-    # DRUGS (28)
-    # =====================
-    print("[Seed] Upserting drugs...")
-    drugs = [
-        ("metformin", "Metformin", "Biguanide", "nausea, diarrhea, lactic acidosis (rare)"),
-        ("warfarin", "Warfarin", "Anticoagulant", "bruising, bleeding, nausea"),
-        ("paracetamol", "Paracetamol", "Analgesic", "liver damage (overdose), rash (rare)"),
-        ("aspirin", "Aspirin", "NSAID", "stomach bleeding, bruising, tinnitus"),
-        ("ibuprofen", "Ibuprofen", "NSAID", "stomach pain, nausea, dizziness"),
-        ("amoxicillin", "Amoxicillin", "Antibiotic", "diarrhea, rash, nausea"),
-        ("azithromycin", "Azithromycin", "Antibiotic", "nausea, diarrhea, abdominal pain"),
-        ("omeprazole", "Omeprazole", "PPI", "headache, nausea, diarrhea"),
-        ("amlodipine", "Amlodipine", "CCB", "swelling, dizziness, fatigue"),
-        ("atenolol", "Atenolol", "Beta-blocker", "fatigue, dizziness, low blood pressure"),
-        ("lisinopril", "Lisinopril", "ACE Inhibitor", "cough, dizziness, high potassium"),
-        ("metoprolol", "Metoprolol", "Beta-blocker", "fatigue, dizziness, slow heartbeat"),
-        ("simvastatin", "Simvastatin", "Statin", "muscle pain, nausea, headache"),
-        ("insulin", "Insulin", "Hormone", "low blood sugar, weight gain, injection site reaction"),
-        ("prednisolone", "Prednisolone", "Corticosteroid", "weight gain, mood changes, high blood sugar"),
-        ("chloroquine", "Chloroquine", "Antimalarial", "nausea, headache, blurred vision"),
-        ("rifampicin", "Rifampicin", "Anti-TB", "orange urine, nausea, liver toxicity"),
-        ("isoniazid", "Isoniazid", "Anti-TB", "numbness, liver toxicity, nausea"),
-        ("fluoxetine", "Fluoxetine", "SSRI", "nausea, insomnia, anxiety, headache"),
-        ("sertraline", "Sertraline", "SSRI", "nausea, diarrhea, insomnia"),
-        ("phenytoin", "Phenytoin", "Anticonvulsant", "dizziness, nausea, rash"),
-        ("diclofenac", "Diclofenac", "NSAID", "stomach pain, nausea, headache"),
-        ("pantoprazole", "Pantoprazole", "PPI", "headache, diarrhea, nausea"),
-        ("losartan", "Losartan", "ARB", "dizziness, fatigue, back pain"),
-        ("clopidogrel", "Clopidogrel", "Antiplatelet", "bruising, bleeding, rash"),
-        ("salbutamol", "Salbutamol", "Bronchodilator", "tremor, rapid heartbeat, headache"),
-        ("montelukast", "Montelukast", "Leukotriene inhibitor", "headache, abdominal pain, fatigue"),
-        ("doxycycline", "Doxycycline", "Antibiotic", "nausea, light sensitivity, diarrhea"),
-    ]
-    for did, name, cls, se in drugs:
-        conn.upsertVertex("Drug", did, {"name": name, "drug_class": cls, "common_side_effects": se})
-    print(f"  -> {len(drugs)} drugs")
+        # ─── DRUGS (28) ───
+        print("[Seed] Upserting drugs...")
+        drugs = [
+            ("metformin", "Metformin", "biguanide", "nausea, diarrhea"),
+            ("warfarin", "Warfarin", "anticoagulant", "bleeding, bruising"),
+            ("paracetamol", "Paracetamol", "analgesic", "liver damage (overdose)"),
+            ("aspirin", "Aspirin", "NSAID/antiplatelet", "GI bleeding, stomach upset"),
+            ("ibuprofen", "Ibuprofen", "NSAID", "GI upset, kidney risk"),
+            ("amoxicillin", "Amoxicillin", "antibiotic", "diarrhea, rash"),
+            ("omeprazole", "Omeprazole", "PPI", "headache, nausea"),
+            ("amlodipine", "Amlodipine", "calcium channel blocker", "swelling, dizziness"),
+            ("simvastatin", "Simvastatin", "statin", "muscle pain, liver issues"),
+            ("clopidogrel", "Clopidogrel", "antiplatelet", "bleeding, bruising"),
+            ("fluoxetine", "Fluoxetine", "SSRI", "nausea, insomnia"),
+            ("sertraline", "Sertraline", "SSRI", "nausea, dizziness"),
+            ("rifampicin", "Rifampicin", "antibiotic", "liver toxicity, orange urine"),
+            ("lisinopril", "Lisinopril", "ACE inhibitor", "cough, dizziness"),
+            ("phenytoin", "Phenytoin", "anticonvulsant", "gum overgrowth, dizziness"),
+            ("isoniazid", "Isoniazid", "antibiotic", "liver toxicity, neuropathy"),
+            ("prednisolone", "Prednisolone", "corticosteroid", "weight gain, mood changes"),
+            ("atenolol", "Atenolol", "beta blocker", "fatigue, cold hands"),
+            ("losartan", "Losartan", "ARB", "dizziness, hyperkalemia"),
+            ("diclofenac", "Diclofenac", "NSAID", "GI bleeding, kidney risk"),
+            ("insulin_glargine", "Insulin Glargine", "insulin", "hypoglycemia"),
+            ("azithromycin", "Azithromycin", "antibiotic", "diarrhea, nausea"),
+            ("hydroxychloroquine", "Hydroxychloroquine", "antimalarial/immunomod", "retinal toxicity"),
+            ("allopurinol", "Allopurinol", "xanthine oxidase inhibitor", "rash, liver issues"),
+            ("salbutamol", "Salbutamol", "bronchodilator", "tremor, tachycardia"),
+            ("chloroquine", "Chloroquine", "antimalarial", "nausea, vision changes"),
+            ("methotrexate", "Methotrexate", "DMARD", "liver toxicity, nausea"),
+            ("levothyroxine", "Levothyroxine", "thyroid hormone", "palpitations, anxiety"),
+        ]
+        for drug_id, name, drug_class, side_effects in drugs:
+            session.run(
+                "MERGE (d:Drug {drug_id: $did}) "
+                "SET d.name = $name, d.drug_class = $cls, d.common_side_effects = $se",
+                did=drug_id, name=name, cls=drug_class, se=side_effects,
+            )
+        print(f"  -> {len(drugs)} drugs")
 
-    # =====================
-    # DRUG INTERACTIONS (INTERACTS_WITH)
-    # =====================
-    print("[Seed] Creating drug interactions...")
-    interactions = [
-        ("warfarin", "aspirin", "severe", "Increased bleeding risk — combined anticoagulant+antiplatelet", "Significantly increases hemorrhage risk. Monitor INR closely."),
-        ("warfarin", "ibuprofen", "severe", "NSAID displaces warfarin from protein binding", "Can cause GI bleeding. Use paracetamol instead."),
-        ("warfarin", "rifampicin", "severe", "Rifampicin induces warfarin metabolism via CYP enzymes", "INR drops dramatically. Need 2-3x warfarin dose increase."),
-        ("fluoxetine", "sertraline", "severe", "Serotonin syndrome risk — dual SSRI", "Never combine two SSRIs. Life-threatening serotonin toxicity."),
-        ("metformin", "prednisolone", "moderate", "Corticosteroids increase blood glucose", "May reduce metformin efficacy. Monitor blood sugar closely."),
-        ("simvastatin", "amlodipine", "moderate", "Amlodipine increases statin blood levels", "Limit simvastatin to 20mg daily. Risk of myopathy."),
-        ("clopidogrel", "omeprazole", "moderate", "Omeprazole reduces clopidogrel activation via CYP2C19", "Use pantoprazole instead for GI protection."),
-        ("phenytoin", "isoniazid", "moderate", "Isoniazid inhibits phenytoin metabolism", "Monitor phenytoin levels. Risk of toxicity."),
-        ("aspirin", "clopidogrel", "moderate", "Dual antiplatelet increases bleeding risk", "Used intentionally post-stent but needs close monitoring."),
-        ("metformin", "lisinopril", "mild", "Possible additive hypoglycemia", "Monitor blood glucose. Usually well tolerated."),
-        ("amlodipine", "atenolol", "mild", "Additive blood pressure lowering", "Monitor for hypotension and bradycardia."),
-        ("ibuprofen", "lisinopril", "moderate", "NSAIDs reduce ACE inhibitor efficacy", "Can cause kidney damage with prolonged use."),
-    ]
-    for d1, d2, sev, mech, note in interactions:
-        conn.upsertEdge("Drug", d1, "INTERACTS_WITH", "Drug", d2, {"severity": sev, "mechanism": mech, "clinical_note": note})
-    print(f"  -> {len(interactions)} drug interactions")
+        # ─── DRUG INTERACTIONS ───
+        print("[Seed] Creating drug interactions...")
+        interactions = [
+            ("warfarin", "aspirin", "severe", "Increased anticoagulant effect and bleeding risk",
+             "Avoid combination. If necessary, monitor INR closely and watch for signs of bleeding."),
+            ("warfarin", "ibuprofen", "severe", "NSAIDs inhibit platelet function and may cause GI bleeding",
+             "Use paracetamol instead of NSAIDs when possible."),
+            ("warfarin", "rifampicin", "severe", "Rifampicin induces CYP enzymes, reducing warfarin efficacy",
+             "May need to double warfarin dose. Monitor INR weekly."),
+            ("metformin", "prednisolone", "moderate", "Corticosteroids increase blood glucose",
+             "Monitor blood sugar more frequently. May need insulin temporarily."),
+            ("simvastatin", "amlodipine", "moderate", "Increased risk of myopathy/rhabdomyolysis",
+             "Limit simvastatin to 20mg/day when combined with amlodipine."),
+            ("clopidogrel", "omeprazole", "moderate", "Omeprazole reduces clopidogrel activation via CYP2C19",
+             "Use pantoprazole instead of omeprazole."),
+            ("fluoxetine", "sertraline", "severe", "Serotonin syndrome risk with dual SSRIs",
+             "Never combine two SSRIs. Taper one before starting another."),
+            ("lisinopril", "losartan", "moderate", "Dual RAAS blockade increases hyperkalemia and renal failure risk",
+             "Avoid combination. Use one agent only."),
+            ("aspirin", "clopidogrel", "moderate", "Dual antiplatelet increases bleeding risk",
+             "Acceptable post-stent for limited duration under specialist supervision."),
+            ("isoniazid", "rifampicin", "moderate", "Combined hepatotoxicity risk",
+             "Standard TB regimen but monitor LFTs monthly."),
+            ("phenytoin", "fluoxetine", "moderate", "Fluoxetine inhibits phenytoin metabolism",
+             "Monitor phenytoin levels. May need dose reduction."),
+            ("diclofenac", "aspirin", "moderate", "Increased GI bleeding risk and reduced aspirin cardioprotection",
+             "Avoid combination. Use paracetamol for pain."),
+        ]
+        for d1, d2, sev, mech, note in interactions:
+            session.run(
+                "MATCH (a:Drug {drug_id: $d1}), (b:Drug {drug_id: $d2}) "
+                "MERGE (a)-[r:INTERACTS_WITH]-(b) "
+                "SET r.severity = $sev, r.mechanism = $mech, r.clinical_note = $note",
+                d1=d1, d2=d2, sev=sev, mech=mech, note=note,
+            )
+        print(f"  -> {len(interactions)} drug interactions")
 
-    # =====================
-    # DRUG SIDE EFFECTS (CAUSES_SIDE_EFFECT)
-    # =====================
-    print("[Seed] Creating drug side effects...")
-    side_effects = [
-        ("metformin", "nausea", "common"), ("metformin", "diarrhea", "common"), ("metformin", "muscle_pain", "rare"),
-        ("warfarin", "bruising", "common"), ("warfarin", "bleeding_gums", "uncommon"),
-        ("aspirin", "abdominal_pain", "common"), ("aspirin", "bruising", "common"),
-        ("ibuprofen", "abdominal_pain", "common"), ("ibuprofen", "nausea", "common"), ("ibuprofen", "dizziness", "uncommon"),
-        ("amlodipine", "swelling", "common"), ("amlodipine", "dizziness", "common"), ("amlodipine", "fatigue", "uncommon"),
-        ("simvastatin", "muscle_pain", "common"), ("simvastatin", "nausea", "uncommon"),
-        ("prednisolone", "mood_changes", "common"), ("prednisolone", "weight_loss", "uncommon"),
-        ("fluoxetine", "nausea", "common"), ("fluoxetine", "insomnia", "common"), ("fluoxetine", "anxiety", "uncommon"),
-        ("rifampicin", "nausea", "common"), ("rifampicin", "jaundice", "uncommon"),
-        ("isoniazid", "numbness", "uncommon"), ("isoniazid", "nausea", "common"),
-        ("phenytoin", "dizziness", "common"), ("phenytoin", "rash", "uncommon"),
-        ("salbutamol", "tremor", "common"), ("salbutamol", "rapid_heartbeat", "common"),
-    ]
-    for drug, symptom, freq in side_effects:
-        conn.upsertEdge("Drug", drug, "CAUSES_SIDE_EFFECT", "Symptom", symptom, {"frequency": freq})
-    print(f"  -> {len(side_effects)} side effect edges")
+        # ─── SPECIALISTS (12) ───
+        print("[Seed] Upserting specialists...")
+        specialists = [
+            ("general_physician", "Dr. General Physician", "General Medicine"),
+            ("cardiologist", "Dr. Cardiologist", "Cardiology"),
+            ("endocrinologist", "Dr. Endocrinologist", "Endocrinology"),
+            ("pulmonologist", "Dr. Pulmonologist", "Pulmonology"),
+            ("nephrologist", "Dr. Nephrologist", "Nephrology"),
+            ("rheumatologist", "Dr. Rheumatologist", "Rheumatology"),
+            ("psychiatrist", "Dr. Psychiatrist", "Psychiatry"),
+            ("hematologist", "Dr. Hematologist", "Hematology"),
+            ("gastroenterologist", "Dr. Gastroenterologist", "Gastroenterology"),
+            ("hepatologist", "Dr. Hepatologist", "Hepatology"),
+            ("dermatologist", "Dr. Dermatologist", "Dermatology"),
+            ("neurologist", "Dr. Neurologist", "Neurology"),
+        ]
+        for sid, name, spec in specialists:
+            session.run(
+                "MERGE (s:Specialist {specialist_id: $sid}) SET s.name = $name, s.specialization = $spec",
+                sid=sid, name=name, spec=spec,
+            )
+        print(f"  -> {len(specialists)} specialists")
 
-    # =====================
-    # SPECIALISTS (12)
-    # =====================
-    print("[Seed] Upserting specialists...")
-    specialists = [
-        ("cardiologist", "Dr. Patel (Cardiologist)", "Cardiology"),
-        ("endocrinologist", "Dr. Sharma (Endocrinologist)", "Endocrinology"),
-        ("pulmonologist", "Dr. Gupta (Pulmonologist)", "Pulmonology"),
-        ("neurologist", "Dr. Reddy (Neurologist)", "Neurology"),
-        ("hematologist", "Dr. Iyer (Hematologist)", "Hematology"),
-        ("gastroenterologist", "Dr. Das (Gastroenterologist)", "Gastroenterology"),
-        ("rheumatologist", "Dr. Nair (Rheumatologist)", "Rheumatology"),
-        ("nephrologist", "Dr. Joshi (Nephrologist)", "Nephrology"),
-        ("psychiatrist", "Dr. Kapoor (Psychiatrist)", "Psychiatry"),
-        ("dermatologist", "Dr. Mehta (Dermatologist)", "Dermatology"),
-        ("general_physician", "Dr. Kumar (General Physician)", "General Medicine"),
-        ("infectious_disease", "Dr. Singh (Infectious Disease)", "Infectious Disease"),
-    ]
-    for sid, name, spec in specialists:
-        conn.upsertVertex("Specialist", sid, {"name": name, "specialization": spec})
-    print(f"  -> {len(specialists)} specialists")
+        # ─── DISEASE → SPECIALIST REFERRALS ───
+        print("[Seed] Creating disease-specialist referrals...")
+        referrals = [
+            ("dengue", "general_physician"), ("malaria", "general_physician"),
+            ("typhoid", "general_physician"), ("diabetes_t2", "endocrinologist"),
+            ("hypertension", "cardiologist"), ("cad", "cardiologist"),
+            ("pneumonia", "pulmonologist"), ("tuberculosis", "pulmonologist"),
+            ("asthma", "pulmonologist"), ("ckd", "nephrologist"),
+            ("rheumatoid", "rheumatologist"), ("depression", "psychiatrist"),
+            ("anemia", "hematologist"), ("gastritis", "gastroenterologist"),
+            ("hepatitis_b", "hepatologist"), ("lupus", "rheumatologist"),
+            ("hypothyroid", "endocrinologist"), ("dvt", "cardiologist"),
+            ("gout", "rheumatologist"), ("migraine", "neurologist"),
+            ("chikungunya", "general_physician"), ("celiac", "gastroenterologist"),
+        ]
+        for did, sid in referrals:
+            session.run(
+                "MATCH (d:Disease {disease_id: $did}), (s:Specialist {specialist_id: $sid}) "
+                "MERGE (d)-[:REFERS_TO]->(s)",
+                did=did, sid=sid,
+            )
+        print(f"  -> {len(referrals)} referral edges")
 
-    # =====================
-    # TREATMENTS (12)
-    # =====================
-    print("[Seed] Upserting treatments...")
-    treatments = [
-        ("iv_fluids", "IV Fluid Therapy", "supportive", "low"),
-        ("insulin_therapy", "Insulin Therapy", "medication", "medium"),
-        ("antihypertensive", "Antihypertensive Therapy", "medication", "low"),
-        ("antibiotic_course", "Antibiotic Course", "medication", "low"),
-        ("chemotherapy", "Chemotherapy", "medication", "high"),
-        ("physical_therapy", "Physical Therapy", "rehabilitation", "medium"),
-        ("cbt", "Cognitive Behavioral Therapy", "therapy", "medium"),
-        ("dialysis", "Dialysis", "procedure", "high"),
-        ("joint_replacement", "Joint Replacement", "surgery", "high"),
-        ("platelet_transfusion", "Platelet Transfusion", "procedure", "medium"),
-        ("bronchodilator_therapy", "Bronchodilator Therapy", "medication", "low"),
-        ("dots", "Anti-TB DOTS Regimen", "medication", "low"),
-    ]
-    for tid, name, ttype, cost in treatments:
-        conn.upsertVertex("Treatment", tid, {"name": name, "treatment_type": ttype, "cost_tier": cost})
-    print(f"  -> {len(treatments)} treatments")
+        # ─── TREATMENTS (12) ───
+        print("[Seed] Upserting treatments...")
+        treatments = [
+            ("treat_antibiotic", "Antibiotic Therapy", "medication", "low"),
+            ("treat_antiviral", "Antiviral Supportive Care", "supportive", "low"),
+            ("treat_insulin", "Insulin Therapy", "medication", "medium"),
+            ("treat_oral_hypoglycemic", "Oral Hypoglycemic Therapy", "medication", "low"),
+            ("treat_antihypertensive", "Antihypertensive Therapy", "medication", "low"),
+            ("treat_stent", "Coronary Stenting", "procedure", "high"),
+            ("treat_bronchodilator", "Bronchodilator Therapy", "medication", "low"),
+            ("treat_dots", "DOTS TB Treatment", "medication", "low"),
+            ("treat_dialysis", "Hemodialysis", "procedure", "high"),
+            ("treat_dmard", "DMARD Therapy", "medication", "medium"),
+            ("treat_ssri", "SSRI Antidepressant Therapy", "medication", "low"),
+            ("treat_ppi", "PPI Therapy", "medication", "low"),
+        ]
+        for tid, name, ttype, cost in treatments:
+            session.run(
+                "MERGE (t:Treatment {treatment_id: $tid}) "
+                "SET t.name = $name, t.treatment_type = $ttype, t.cost_tier = $cost",
+                tid=tid, name=name, ttype=ttype, cost=cost,
+            )
+        print(f"  -> {len(treatments)} treatments")
 
-    # =====================
-    # RISK FACTORS (10)
-    # =====================
-    print("[Seed] Upserting risk factors...")
-    risk_factors = [
-        ("immunosuppression", "Immunosuppression", "medical"),
-        ("obesity", "Obesity", "lifestyle"),
-        ("smoking", "Smoking", "lifestyle"),
-        ("sedentary", "Sedentary Lifestyle", "lifestyle"),
-        ("family_diabetes", "Family History of Diabetes", "genetic"),
-        ("high_cholesterol", "High Cholesterol", "metabolic"),
-        ("chronic_inflammation", "Chronic Inflammation", "medical"),
-        ("alcohol_use", "Alcohol Use", "lifestyle"),
-        ("age_over_60", "Age Over 60", "demographic"),
-        ("malnutrition", "Malnutrition", "nutritional"),
-    ]
-    for rid, name, cat in risk_factors:
-        conn.upsertVertex("RiskFactor", rid, {"name": name, "category": cat})
-    print(f"  -> {len(risk_factors)} risk factors")
+        # ─── DISEASE → TREATMENT EDGES ───
+        print("[Seed] Creating disease-treatment edges...")
+        disease_treatments = [
+            ("dengue", "treat_antiviral", 0.85, 0.9),
+            ("malaria", "treat_antiviral", 0.90, 0.85),
+            ("typhoid", "treat_antibiotic", 0.90, 0.9),
+            ("diabetes_t2", "treat_oral_hypoglycemic", 0.80, 0.95),
+            ("diabetes_t2", "treat_insulin", 0.85, 0.7),
+            ("hypertension", "treat_antihypertensive", 0.85, 0.95),
+            ("cad", "treat_antihypertensive", 0.70, 0.9),
+            ("cad", "treat_stent", 0.90, 0.5),
+            ("pneumonia", "treat_antibiotic", 0.85, 0.9),
+            ("tuberculosis", "treat_dots", 0.90, 0.85),
+            ("asthma", "treat_bronchodilator", 0.85, 0.95),
+            ("ckd", "treat_dialysis", 0.75, 0.4),
+            ("rheumatoid", "treat_dmard", 0.70, 0.6),
+            ("depression", "treat_ssri", 0.75, 0.9),
+            ("gastritis", "treat_ppi", 0.85, 0.95),
+        ]
+        for did, tid, success, access in disease_treatments:
+            session.run(
+                "MATCH (d:Disease {disease_id: $did}), (t:Treatment {treatment_id: $tid}) "
+                "MERGE (d)-[r:TREATED_BY]->(t) SET r.success_rate = $success, r.accessibility_score = $access",
+                did=did, tid=tid, success=success, access=access,
+            )
+        print(f"  -> {len(disease_treatments)} disease-treatment edges")
 
-    # =====================
-    # LAB TESTS (14)
-    # =====================
-    print("[Seed] Upserting lab tests...")
-    lab_tests = [
-        ("cbc", "Complete Blood Count", "blood"),
-        ("fasting_glucose", "Blood Glucose (Fasting)", "blood"),
-        ("hba1c", "HbA1c", "blood"),
-        ("lft", "Liver Function Test", "blood"),
-        ("kft", "Kidney Function Test", "blood"),
-        ("inr_pt", "INR/PT", "blood"),
-        ("lipid_panel", "Lipid Panel", "blood"),
-        ("chest_xray", "Chest X-ray", "imaging"),
-        ("dengue_ns1", "Dengue NS1 Antigen", "blood"),
-        ("malaria_smear", "Malaria Smear", "blood"),
-        ("blood_culture", "Blood Culture", "blood"),
-        ("urine_analysis", "Urine Analysis", "urine"),
-        ("ecg", "ECG", "cardiac"),
-        ("thyroid_panel", "Thyroid Panel", "blood"),
-    ]
-    for lid, name, ttype in lab_tests:
-        conn.upsertVertex("LabTest", lid, {"name": name, "test_type": ttype})
-    print(f"  -> {len(lab_tests)} lab tests")
+        # ─── TREATMENT → DRUG PRESCRIPTIONS ───
+        print("[Seed] Creating treatment-drug prescriptions...")
+        prescriptions = [
+            ("treat_antiviral", "paracetamol", "500mg 3x/day", "5-7 days"),
+            ("treat_antibiotic", "amoxicillin", "500mg 3x/day", "7-10 days"),
+            ("treat_antibiotic", "azithromycin", "500mg 1x/day", "3-5 days"),
+            ("treat_oral_hypoglycemic", "metformin", "500mg 2x/day", "ongoing"),
+            ("treat_insulin", "insulin_glargine", "10-40 units/day", "ongoing"),
+            ("treat_antihypertensive", "amlodipine", "5mg 1x/day", "ongoing"),
+            ("treat_antihypertensive", "lisinopril", "10mg 1x/day", "ongoing"),
+            ("treat_antihypertensive", "atenolol", "50mg 1x/day", "ongoing"),
+            ("treat_stent", "clopidogrel", "75mg 1x/day", "12 months"),
+            ("treat_stent", "aspirin", "75mg 1x/day", "lifelong"),
+            ("treat_bronchodilator", "salbutamol", "2 puffs PRN", "as needed"),
+            ("treat_dots", "isoniazid", "300mg 1x/day", "6 months"),
+            ("treat_dots", "rifampicin", "600mg 1x/day", "6 months"),
+            ("treat_dmard", "methotrexate", "15mg 1x/week", "ongoing"),
+            ("treat_dmard", "hydroxychloroquine", "200mg 2x/day", "ongoing"),
+            ("treat_ssri", "fluoxetine", "20mg 1x/day", "6-12 months"),
+            ("treat_ssri", "sertraline", "50mg 1x/day", "6-12 months"),
+            ("treat_ppi", "omeprazole", "20mg 1x/day", "4-8 weeks"),
+        ]
+        for tid, did, dosage, duration in prescriptions:
+            session.run(
+                "MATCH (t:Treatment {treatment_id: $tid}), (d:Drug {drug_id: $did}) "
+                "MERGE (t)-[r:PRESCRIBED]->(d) SET r.dosage = $dosage, r.duration = $duration",
+                tid=tid, did=did, dosage=dosage, duration=duration,
+            )
+        print(f"  -> {len(prescriptions)} treatment-drug edges")
 
-    # =====================
-    # PROTOCOLS (3)
-    # =====================
-    print("[Seed] Upserting protocols...")
-    protocols = [
-        ("post_surgery", "Post-Surgery Protocol", "1,3,7,14", "How is your pain level? Is the wound healing well? Are you taking your medications regularly?"),
-        ("chronic_disease", "Chronic Disease Protocol", "7,14,30,90", "How are your symptoms? Are you taking medications on time? Any new symptoms or concerns?"),
-        ("acute_infection", "Acute Infection Protocol", "1,3,7", "Is your fever coming down? Have you completed your medication course? Any new symptoms?"),
-    ]
-    for pid, name, days, questions in protocols:
-        conn.upsertVertex("Protocol", pid, {"name": name, "followup_days": days, "questions_template": questions})
-    print(f"  -> {len(protocols)} protocols")
+        # ─── RISK FACTORS (10) ───
+        print("[Seed] Upserting risk factors...")
+        risk_factors = [
+            ("rf_obesity", "Obesity", "lifestyle"),
+            ("rf_smoking", "Smoking", "lifestyle"),
+            ("rf_sedentary", "Sedentary Lifestyle", "lifestyle"),
+            ("rf_family_diabetes", "Family History of Diabetes", "genetic"),
+            ("rf_family_heart", "Family History of Heart Disease", "genetic"),
+            ("rf_high_cholesterol", "High Cholesterol", "metabolic"),
+            ("rf_alcohol", "Heavy Alcohol Use", "lifestyle"),
+            ("rf_stress", "Chronic Stress", "lifestyle"),
+            ("rf_age_over_50", "Age Over 50", "demographic"),
+            ("rf_insulin_resistance", "Insulin Resistance", "metabolic"),
+        ]
+        for rid, name, cat in risk_factors:
+            session.run(
+                "MERGE (r:RiskFactor {risk_factor_id: $rid}) SET r.name = $name, r.category = $cat",
+                rid=rid, name=name, cat=cat,
+            )
+        print(f"  -> {len(risk_factors)} risk factors")
 
-    # =====================
-    # DISEASE -> TREATMENT (TREATED_BY)
-    # =====================
-    print("[Seed] Creating disease-treatment edges...")
-    disease_treatments = [
-        ("dengue", "iv_fluids", 0.85, 0.9),
-        ("dengue", "platelet_transfusion", 0.7, 0.6),
-        ("diabetes_t2", "insulin_therapy", 0.8, 0.7),
-        ("hypertension", "antihypertensive", 0.85, 0.9),
-        ("malaria", "antibiotic_course", 0.9, 0.85),
-        ("tuberculosis", "dots", 0.85, 0.8),
-        ("pneumonia", "antibiotic_course", 0.8, 0.85),
-        ("asthma", "bronchodilator_therapy", 0.8, 0.9),
-        ("cad", "antihypertensive", 0.7, 0.8),
-        ("ckd", "dialysis", 0.6, 0.4),
-        ("rheumatoid_arthritis", "physical_therapy", 0.65, 0.7),
-        ("rheumatoid_arthritis", "joint_replacement", 0.75, 0.3),
-        ("depression", "cbt", 0.7, 0.8),
-        ("gastritis", "antibiotic_course", 0.75, 0.9),
-    ]
-    for did, tid, sr, acc in disease_treatments:
-        conn.upsertEdge("Disease", did, "TREATED_BY", "Treatment", tid, {"success_rate": sr, "accessibility_score": acc})
-    print(f"  -> {len(disease_treatments)} disease-treatment edges")
+        # ─── DISEASE → RISK_FACTOR EDGES ───
+        print("[Seed] Creating disease-risk edges...")
+        disease_risks = [
+            ("diabetes_t2", "rf_obesity"), ("diabetes_t2", "rf_sedentary"),
+            ("diabetes_t2", "rf_family_diabetes"), ("diabetes_t2", "rf_insulin_resistance"),
+            ("hypertension", "rf_obesity"), ("hypertension", "rf_smoking"),
+            ("hypertension", "rf_stress"), ("hypertension", "rf_sedentary"),
+            ("cad", "rf_smoking"), ("cad", "rf_high_cholesterol"),
+            ("cad", "rf_family_heart"), ("cad", "rf_obesity"),
+            ("ckd", "rf_obesity"), ("depression", "rf_stress"),
+            ("depression", "rf_alcohol"),
+        ]
+        for did, rid in disease_risks:
+            session.run(
+                "MATCH (d:Disease {disease_id: $did}), (r:RiskFactor {risk_factor_id: $rid}) "
+                "MERGE (d)-[:RISK_INCREASES]->(r)",
+                did=did, rid=rid,
+            )
+        print(f"  -> {len(disease_risks)} disease-risk edges")
 
-    # =====================
-    # TREATMENT -> DRUG (PRESCRIBED)
-    # =====================
-    print("[Seed] Creating treatment-drug edges...")
-    treatment_drugs = [
-        ("iv_fluids", "paracetamol", "500mg every 6hrs", "5-7 days"),
-        ("insulin_therapy", "insulin", "10 units daily", "ongoing"),
-        ("insulin_therapy", "metformin", "500mg twice daily", "ongoing"),
-        ("antihypertensive", "amlodipine", "5mg daily", "ongoing"),
-        ("antihypertensive", "losartan", "50mg daily", "ongoing"),
-        ("antihypertensive", "atenolol", "50mg daily", "ongoing"),
-        ("antibiotic_course", "amoxicillin", "500mg 3x daily", "7 days"),
-        ("antibiotic_course", "azithromycin", "500mg daily", "5 days"),
-        ("antibiotic_course", "doxycycline", "100mg 2x daily", "7 days"),
-        ("dots", "rifampicin", "600mg daily", "6 months"),
-        ("dots", "isoniazid", "300mg daily", "6 months"),
-        ("bronchodilator_therapy", "salbutamol", "2 puffs as needed", "ongoing"),
-        ("bronchodilator_therapy", "montelukast", "10mg daily", "ongoing"),
-        ("cbt", "fluoxetine", "20mg daily", "6-12 months"),
-        ("cbt", "sertraline", "50mg daily", "6-12 months"),
-    ]
-    for tid, did, dose, dur in treatment_drugs:
-        conn.upsertEdge("Treatment", tid, "PRESCRIBED", "Drug", did, {"dosage": dose, "duration": dur})
-    print(f"  -> {len(treatment_drugs)} treatment-drug edges")
+        # ─── RISK_FACTOR → DISEASE ELEVATION EDGES ───
+        print("[Seed] Creating risk-elevation edges...")
+        elevations = [
+            ("rf_obesity", "cad", 2.1), ("rf_obesity", "hypertension", 1.8),
+            ("rf_obesity", "diabetes_t2", 2.5), ("rf_obesity", "ckd", 1.5),
+            ("rf_smoking", "cad", 2.5), ("rf_smoking", "hypertension", 1.6),
+            ("rf_smoking", "pneumonia", 1.4),
+            ("rf_sedentary", "diabetes_t2", 1.7), ("rf_sedentary", "cad", 1.5),
+            ("rf_family_diabetes", "diabetes_t2", 2.8),
+            ("rf_family_heart", "cad", 2.3), ("rf_family_heart", "hypertension", 1.8),
+            ("rf_high_cholesterol", "cad", 2.4), ("rf_high_cholesterol", "dvt", 1.6),
+            ("rf_alcohol", "hepatitis_b", 1.9), ("rf_alcohol", "gastritis", 1.7),
+            ("rf_stress", "hypertension", 1.5), ("rf_stress", "depression", 2.0),
+            ("rf_insulin_resistance", "diabetes_t2", 3.0), ("rf_insulin_resistance", "cad", 1.8),
+            ("rf_age_over_50", "cad", 1.6), ("rf_age_over_50", "ckd", 1.4),
+        ]
+        for rid, did, mult in elevations:
+            session.run(
+                "MATCH (r:RiskFactor {risk_factor_id: $rid}), (d:Disease {disease_id: $did}) "
+                "MERGE (r)-[e:ELEVATES]->(d) SET e.multiplier = $mult",
+                rid=rid, did=did, mult=mult,
+            )
+        print(f"  -> {len(elevations)} risk-elevation edges")
 
-    # =====================
-    # DISEASE -> SPECIALIST (REFERS_TO)
-    # =====================
-    print("[Seed] Creating disease-specialist edges...")
-    disease_specialists = [
-        ("dengue", "infectious_disease"), ("dengue", "hematologist"),
-        ("diabetes_t2", "endocrinologist"), ("hypertension", "cardiologist"),
-        ("malaria", "infectious_disease"), ("tuberculosis", "pulmonologist"),
-        ("pneumonia", "pulmonologist"), ("asthma", "pulmonologist"),
-        ("migraine", "neurologist"), ("typhoid", "infectious_disease"),
-        ("anemia", "hematologist"), ("gastritis", "gastroenterologist"),
-        ("uti", "nephrologist"), ("hepatitis_b", "gastroenterologist"),
-        ("cad", "cardiologist"), ("ckd", "nephrologist"),
-        ("rheumatoid_arthritis", "rheumatologist"), ("depression", "psychiatrist"),
-        ("hlh", "hematologist"), ("wilsons", "neurologist"), ("gbs", "neurologist"),
-    ]
-    for did, sid in disease_specialists:
-        conn.upsertEdge("Disease", did, "REFERS_TO", "Specialist", sid)
-    print(f"  -> {len(disease_specialists)} disease-specialist edges")
+        # ─── LAB TESTS (14) ───
+        print("[Seed] Upserting lab tests...")
+        lab_tests = [
+            ("lt_cbc", "Complete Blood Count (CBC)", "blood"),
+            ("lt_hba1c", "HbA1c", "blood"), ("lt_fbs", "Fasting Blood Sugar", "blood"),
+            ("lt_lipid", "Lipid Profile", "blood"), ("lt_ecg", "ECG", "cardiac"),
+            ("lt_echo", "Echocardiogram", "cardiac"), ("lt_creatinine", "Serum Creatinine", "blood"),
+            ("lt_lft", "Liver Function Test", "blood"), ("lt_xray", "Chest X-Ray", "imaging"),
+            ("lt_sputum", "Sputum Culture", "microbiology"),
+            ("lt_thyroid", "Thyroid Profile (TSH/T3/T4)", "blood"),
+            ("lt_rf", "Rheumatoid Factor", "blood"),
+            ("lt_hbsag", "HBsAg Test", "blood"),
+            ("lt_uric_acid", "Serum Uric Acid", "blood"),
+        ]
+        for tid, name, ttype in lab_tests:
+            session.run(
+                "MERGE (l:LabTest {lab_test_id: $tid}) SET l.name = $name, l.test_type = $ttype",
+                tid=tid, name=name, ttype=ttype,
+            )
+        print(f"  -> {len(lab_tests)} lab tests")
 
-    # =====================
-    # DISEASE -> RISK FACTOR (RISK_INCREASES)
-    # =====================
-    print("[Seed] Creating disease-risk factor edges...")
-    disease_risks = [
-        ("diabetes_t2", "immunosuppression"), ("diabetes_t2", "obesity"),
-        ("diabetes_t2", "sedentary"), ("diabetes_t2", "family_diabetes"),
-        ("hypertension", "obesity"), ("hypertension", "smoking"),
-        ("hypertension", "high_cholesterol"), ("hypertension", "sedentary"),
-        ("cad", "high_cholesterol"), ("cad", "smoking"),
-        ("cad", "obesity"), ("cad", "age_over_60"),
-        ("ckd", "high_cholesterol"), ("ckd", "age_over_60"),
-        ("depression", "chronic_inflammation"), ("depression", "alcohol_use"),
-        ("tuberculosis", "immunosuppression"), ("tuberculosis", "malnutrition"),
-        ("anemia", "malnutrition"),
-    ]
-    for did, rid in disease_risks:
-        conn.upsertEdge("Disease", did, "RISK_INCREASES", "RiskFactor", rid)
-    print(f"  -> {len(disease_risks)} disease-risk edges")
+        # ─── DISEASE → LAB TEST EDGES ───
+        print("[Seed] Creating disease-labtest edges...")
+        disease_tests = [
+            ("dengue", "lt_cbc"), ("malaria", "lt_cbc"),
+            ("diabetes_t2", "lt_hba1c"), ("diabetes_t2", "lt_fbs"),
+            ("hypertension", "lt_ecg"), ("hypertension", "lt_lipid"),
+            ("cad", "lt_ecg"), ("cad", "lt_echo"), ("cad", "lt_lipid"),
+            ("pneumonia", "lt_xray"), ("tuberculosis", "lt_xray"), ("tuberculosis", "lt_sputum"),
+            ("ckd", "lt_creatinine"), ("hepatitis_b", "lt_lft"), ("hepatitis_b", "lt_hbsag"),
+            ("anemia", "lt_cbc"), ("hypothyroid", "lt_thyroid"),
+            ("rheumatoid", "lt_rf"), ("gout", "lt_uric_acid"),
+        ]
+        for did, tid in disease_tests:
+            session.run(
+                "MATCH (d:Disease {disease_id: $did}), (l:LabTest {lab_test_id: $tid}) "
+                "MERGE (d)-[:REQUIRES_TEST]->(l)",
+                did=did, tid=tid,
+            )
+        print(f"  -> {len(disease_tests)} disease-labtest edges")
 
-    # =====================
-    # RISK FACTOR -> DISEASE (ELEVATES)
-    # =====================
-    print("[Seed] Creating risk-disease elevation edges...")
-    risk_elevations = [
-        ("immunosuppression", "tuberculosis", 2.5), ("immunosuppression", "pneumonia", 2.0),
-        ("obesity", "diabetes_t2", 2.2), ("obesity", "hypertension", 1.8), ("obesity", "cad", 1.5),
-        ("smoking", "cad", 2.5), ("smoking", "pneumonia", 1.8), ("smoking", "asthma", 2.0),
-        ("sedentary", "diabetes_t2", 1.6), ("sedentary", "cad", 1.4),
-        ("family_diabetes", "diabetes_t2", 2.8),
-        ("high_cholesterol", "cad", 2.3), ("high_cholesterol", "hypertension", 1.5),
-        ("chronic_inflammation", "rheumatoid_arthritis", 1.8), ("chronic_inflammation", "cad", 1.3),
-        ("alcohol_use", "hepatitis_b", 1.7), ("alcohol_use", "gastritis", 1.9),
-        ("age_over_60", "cad", 1.6), ("age_over_60", "ckd", 1.8), ("age_over_60", "depression", 1.3),
-        ("malnutrition", "anemia", 2.5), ("malnutrition", "tuberculosis", 2.0),
-    ]
-    for rid, did, mult in risk_elevations:
-        conn.upsertEdge("RiskFactor", rid, "ELEVATES", "Disease", did, {"multiplier": mult})
-    print(f"  -> {len(risk_elevations)} risk elevation edges")
+        # ─── PROTOCOLS (3) ───
+        print("[Seed] Upserting protocols...")
+        protocols = [
+            ("proto_surgery", "Post-Surgery Follow-up", "1,3,7,14,30",
+             "How is your pain? Are you taking medication? Any new symptoms?"),
+            ("proto_chronic", "Chronic Disease Management", "7,14,30,60,90",
+             "How are you feeling? Blood sugar readings? Any side effects?"),
+            ("proto_acute", "Acute Illness Recovery", "1,3,7",
+             "Is the fever gone? Any new symptoms? Are you eating well?"),
+        ]
+        for pid, name, days, questions in protocols:
+            session.run(
+                "MERGE (p:Protocol {protocol_id: $pid}) "
+                "SET p.name = $name, p.followup_days = $days, p.questions_template = $questions",
+                pid=pid, name=name, days=days, questions=questions,
+            )
+        print(f"  -> {len(protocols)} protocols")
 
-    # =====================
-    # DISEASE -> LAB TEST (REQUIRES_TEST)
-    # =====================
-    print("[Seed] Creating disease-test edges...")
-    disease_tests = [
-        ("dengue", "dengue_ns1"), ("dengue", "cbc"),
-        ("diabetes_t2", "fasting_glucose"), ("diabetes_t2", "hba1c"),
-        ("hypertension", "ecg"), ("hypertension", "lipid_panel"),
-        ("malaria", "malaria_smear"), ("malaria", "cbc"),
-        ("tuberculosis", "chest_xray"), ("tuberculosis", "blood_culture"),
-        ("anemia", "cbc"), ("hepatitis_b", "lft"),
-        ("cad", "ecg"), ("cad", "lipid_panel"),
-        ("ckd", "kft"), ("ckd", "urine_analysis"),
-        ("hlh", "cbc"), ("hlh", "lft"),
-        ("wilsons", "lft"), ("wilsons", "urine_analysis"),
-    ]
-    for did, lid in disease_tests:
-        conn.upsertEdge("Disease", did, "REQUIRES_TEST", "LabTest", lid)
-    print(f"  -> {len(disease_tests)} disease-test edges")
+        # ─── DISEASE → PROTOCOL EDGES ───
+        disease_protocols = [
+            ("dengue", "proto_acute"), ("malaria", "proto_acute"),
+            ("typhoid", "proto_acute"), ("diabetes_t2", "proto_chronic"),
+            ("hypertension", "proto_chronic"), ("cad", "proto_surgery"),
+        ]
+        for did, pid in disease_protocols:
+            session.run(
+                "MATCH (d:Disease {disease_id: $did}), (p:Protocol {protocol_id: $pid}) "
+                "MERGE (d)-[:HAS_PROTOCOL]->(p)",
+                did=did, pid=pid,
+            )
+        print(f"  -> {len(disease_protocols)} disease-protocol edges")
 
-    # =====================
-    # DISEASE -> PROTOCOL (HAS_PROTOCOL)
-    # =====================
-    print("[Seed] Creating disease-protocol edges...")
-    disease_protocols = [
-        ("dengue", "acute_infection"), ("malaria", "acute_infection"),
-        ("typhoid", "acute_infection"), ("pneumonia", "acute_infection"),
-        ("diabetes_t2", "chronic_disease"), ("hypertension", "chronic_disease"),
-        ("cad", "chronic_disease"), ("ckd", "chronic_disease"),
-        ("rheumatoid_arthritis", "chronic_disease"), ("depression", "chronic_disease"),
-    ]
-    for did, pid in disease_protocols:
-        conn.upsertEdge("Disease", did, "HAS_PROTOCOL", "Protocol", pid)
-    print(f"  -> {len(disease_protocols)} disease-protocol edges")
+        # ─── PATIENTS (5) ───
+        print("[Seed] Upserting patients...")
+        patients = [
+            ("priya", "Priya", "+919876543210", "hi", 32, "female"),
+            ("karthik", "Karthik", "+919876543211", "ta", 45, "male"),
+            ("ananya", "Ananya", "+919876543212", "te", 28, "female"),
+            ("rahul", "Rahul", "+919876543213", "en", 55, "male"),
+            ("meera", "Meera", "+919876543214", "bn", 35, "female"),
+        ]
+        for pid, name, phone, lang, age, gender in patients:
+            session.run(
+                "MERGE (p:Patient {patient_id: $pid}) "
+                "SET p.name = $name, p.phone = $phone, p.language = $lang, p.age = $age, p.gender = $gender",
+                pid=pid, name=name, phone=phone, lang=lang, age=age, gender=gender,
+            )
+        print(f"  -> {len(patients)} patients")
 
-    # =====================
-    # DEMO PATIENTS (5)
-    # =====================
-    print("[Seed] Creating demo patients...")
-    today = date.today().isoformat()
-    week_ago = (date.today() - timedelta(days=7)).isoformat()
-    three_days_ago = (date.today() - timedelta(days=3)).isoformat()
+        # ─── PATIENT → DISEASE (HAS_CONDITION) ───
+        print("[Seed] Creating patient-condition edges...")
+        patient_conditions = [
+            ("priya", "dengue", "2024-03-10", "active"),
+            ("priya", "diabetes_t2", "2023-01-15", "chronic"),
+            ("karthik", "cad", "2024-02-20", "post-surgery"),
+            ("karthik", "hypertension", "2022-06-01", "chronic"),
+            ("ananya", "lupus", "2024-03-01", "suspected"),
+            ("rahul", "hypertension", "2020-01-01", "chronic"),
+            ("rahul", "diabetes_t2", "2021-06-15", "chronic"),
+            ("rahul", "cad", "2023-09-01", "chronic"),
+        ]
+        for pid, did, diag_date, status in patient_conditions:
+            session.run(
+                "MATCH (p:Patient {patient_id: $pid}), (d:Disease {disease_id: $did}) "
+                "MERGE (p)-[r:HAS_CONDITION]->(d) SET r.diagnosed_date = $dd, r.status = $status",
+                pid=pid, did=did, dd=diag_date, status=status,
+            )
+        print(f"  -> {len(patient_conditions)} patient-condition edges")
 
-    # Patient 1: Priya (Hindi) - Dengue + Diabetes
-    conn.upsertVertex("Patient", "priya", {"name": "Priya Devi", "phone": "+919876543210", "language": "hi", "age": 45, "gender": "female"})
-    conn.upsertEdge("Patient", "priya", "HAS_CONDITION", "Disease", "dengue", {"diagnosed_date": three_days_ago, "status": "active"})
-    conn.upsertEdge("Patient", "priya", "HAS_CONDITION", "Disease", "diabetes_t2", {"diagnosed_date": "2023-01-15", "status": "active"})
-    conn.upsertEdge("Patient", "priya", "TAKES_MEDICATION", "Drug", "metformin", {"dosage": "500mg twice daily", "start_date": "2023-01-15"})
-    conn.upsertEdge("Patient", "priya", "TAKES_MEDICATION", "Drug", "warfarin", {"dosage": "5mg daily", "start_date": "2024-06-01"})
-    conn.upsertEdge("Patient", "priya", "TAKES_MEDICATION", "Drug", "paracetamol", {"dosage": "500mg every 6hrs", "start_date": three_days_ago})
-    conn.upsertEdge("Patient", "priya", "PRESENTS_WITH", "Symptom", "fever", {"duration_days": 3, "severity": "moderate", "reported_date": three_days_ago})
-    conn.upsertEdge("Patient", "priya", "PRESENTS_WITH", "Symptom", "headache", {"duration_days": 3, "severity": "moderate", "reported_date": three_days_ago})
-    conn.upsertEdge("Patient", "priya", "PRESENTS_WITH", "Symptom", "body_pain", {"duration_days": 2, "severity": "moderate", "reported_date": three_days_ago})
-    conn.upsertEdge("Patient", "priya", "HAS_COMPLETED_TEST", "LabTest", "fasting_glucose", {"test_date": "2024-12-01", "result": "145 mg/dL"})
-    conn.upsertEdge("Patient", "priya", "HAS_COMPLETED_TEST", "LabTest", "cbc", {"test_date": three_days_ago, "result": "Platelets low: 95000"})
+        # ─── PATIENT → DRUG (TAKES_MEDICATION) ───
+        print("[Seed] Creating patient-medication edges...")
+        patient_meds = [
+            ("priya", "paracetamol", "500mg 3x/day", "2024-03-10"),
+            ("priya", "metformin", "500mg 2x/day", "2023-01-15"),
+            ("karthik", "clopidogrel", "75mg 1x/day", "2024-02-20"),
+            ("karthik", "aspirin", "75mg 1x/day", "2024-02-20"),
+            ("karthik", "atenolol", "50mg 1x/day", "2022-06-01"),
+            ("rahul", "metformin", "1000mg 2x/day", "2021-06-15"),
+            ("rahul", "amlodipine", "5mg 1x/day", "2020-01-01"),
+            ("rahul", "simvastatin", "20mg 1x/day", "2023-09-01"),
+            ("rahul", "aspirin", "75mg 1x/day", "2023-09-01"),
+        ]
+        for pid, did, dosage, start in patient_meds:
+            session.run(
+                "MATCH (p:Patient {patient_id: $pid}), (d:Drug {drug_id: $did}) "
+                "MERGE (p)-[r:TAKES_MEDICATION]->(d) SET r.dosage = $dosage, r.start_date = $start",
+                pid=pid, did=did, dosage=dosage, start=start,
+            )
+        print(f"  -> {len(patient_meds)} patient-medication edges")
 
-    # Patient 2: Karthik (Tamil) - Post-surgery, day 7 follow-up
-    conn.upsertVertex("Patient", "karthik", {"name": "Karthik Sundaram", "phone": "+919876543211", "language": "ta", "age": 35, "gender": "male"})
-    conn.upsertEdge("Patient", "karthik", "HAS_CONDITION", "Disease", "gastritis", {"diagnosed_date": week_ago, "status": "active"})
-    conn.upsertEdge("Patient", "karthik", "TAKES_MEDICATION", "Drug", "amoxicillin", {"dosage": "500mg 3x daily", "start_date": week_ago})
-    conn.upsertEdge("Patient", "karthik", "TAKES_MEDICATION", "Drug", "ibuprofen", {"dosage": "400mg as needed", "start_date": week_ago})
-    # Follow-up for today
-    conn.upsertVertex("FollowUp", "fu_karthik_today", {"status": "pending", "scheduled_date": today, "pain_score": 0, "took_medication": False, "new_symptoms": "", "call_transcript": "", "risk_flag": False})
-    conn.upsertEdge("Patient", "karthik", "HAS_FOLLOWUP", "FollowUp", "fu_karthik_today", {"linked_disease": "gastritis"})
+        # ─── PATIENT → LAB TESTS COMPLETED ───
+        print("[Seed] Creating patient-labtest edges...")
+        patient_tests = [
+            ("priya", "lt_cbc", "2024-03-10", "low platelet count"),
+            ("priya", "lt_fbs", "2024-01-05", "140 mg/dL"),
+            ("rahul", "lt_ecg", "2023-09-01", "ST changes"),
+            ("rahul", "lt_lipid", "2023-09-01", "LDL 180"),
+            ("rahul", "lt_hba1c", "2024-01-10", "7.2%"),
+            ("karthik", "lt_ecg", "2024-02-20", "normal post-op"),
+        ]
+        for pid, tid, test_date, result_val in patient_tests:
+            session.run(
+                "MATCH (p:Patient {patient_id: $pid}), (l:LabTest {lab_test_id: $tid}) "
+                "MERGE (p)-[r:HAS_COMPLETED_TEST]->(l) SET r.test_date = $td, r.result = $res",
+                pid=pid, tid=tid, td=test_date, res=result_val,
+            )
+        print(f"  -> {len(patient_tests)} patient-labtest edges")
 
-    # Patient 3: Ananya (Telugu) - Unusual symptoms, rare disease candidate
-    conn.upsertVertex("Patient", "ananya", {"name": "Ananya Reddy", "phone": "+919876543212", "language": "te", "age": 28, "gender": "female"})
-    conn.upsertEdge("Patient", "ananya", "PRESENTS_WITH", "Symptom", "fatigue", {"duration_days": 30, "severity": "moderate", "reported_date": today})
-    conn.upsertEdge("Patient", "ananya", "PRESENTS_WITH", "Symptom", "jaundice", {"duration_days": 14, "severity": "mild", "reported_date": today})
-    conn.upsertEdge("Patient", "ananya", "PRESENTS_WITH", "Symptom", "tremor", {"duration_days": 21, "severity": "moderate", "reported_date": today})
-    conn.upsertEdge("Patient", "ananya", "PRESENTS_WITH", "Symptom", "dark_urine", {"duration_days": 14, "severity": "mild", "reported_date": today})
+        # ─── FOLLOW-UPS ───
+        print("[Seed] Creating follow-ups...")
+        followups = [
+            ("fu_karthik_today", "pending", TODAY, "karthik", "Coronary Artery Disease"),
+            ("fu_priya_today", "pending", TODAY, "priya", "Dengue Fever"),
+        ]
+        for fid, status, sched_date, pid, linked_disease in followups:
+            session.run(
+                "MERGE (fu:FollowUp {followup_id: $fid}) "
+                "SET fu.status = $status, fu.scheduled_date = $sched, "
+                "fu.pain_score = 0, fu.took_medication = false, fu.new_symptoms = '', "
+                "fu.call_transcript = '', fu.risk_flag = false",
+                fid=fid, status=status, sched=sched_date,
+            )
+            session.run(
+                "MATCH (p:Patient {patient_id: $pid}), (fu:FollowUp {followup_id: $fid}) "
+                "MERGE (p)-[r:HAS_FOLLOWUP]->(fu) SET r.linked_disease = $ld",
+                pid=pid, fid=fid, ld=linked_disease,
+            )
+        print(f"  -> {len(followups)} follow-ups (due today)")
 
-    # Patient 4: Rahul (English) - Multiple chronic conditions
-    conn.upsertVertex("Patient", "rahul", {"name": "Rahul Verma", "phone": "+919876543213", "language": "en", "age": 55, "gender": "male"})
-    conn.upsertEdge("Patient", "rahul", "HAS_CONDITION", "Disease", "hypertension", {"diagnosed_date": "2020-03-10", "status": "active"})
-    conn.upsertEdge("Patient", "rahul", "HAS_CONDITION", "Disease", "diabetes_t2", {"diagnosed_date": "2019-08-22", "status": "active"})
-    conn.upsertEdge("Patient", "rahul", "HAS_CONDITION", "Disease", "cad", {"diagnosed_date": "2022-11-05", "status": "active"})
-    conn.upsertEdge("Patient", "rahul", "TAKES_MEDICATION", "Drug", "metformin", {"dosage": "1000mg twice daily", "start_date": "2019-08-22"})
-    conn.upsertEdge("Patient", "rahul", "TAKES_MEDICATION", "Drug", "amlodipine", {"dosage": "5mg daily", "start_date": "2020-03-10"})
-    conn.upsertEdge("Patient", "rahul", "TAKES_MEDICATION", "Drug", "simvastatin", {"dosage": "40mg nightly", "start_date": "2020-03-10"})
-    conn.upsertEdge("Patient", "rahul", "TAKES_MEDICATION", "Drug", "aspirin", {"dosage": "75mg daily", "start_date": "2022-11-05"})
-    conn.upsertEdge("Patient", "rahul", "HAS_COMPLETED_TEST", "LabTest", "ecg", {"test_date": "2024-06-15", "result": "Mild ST depression"})
-    conn.upsertEdge("Patient", "rahul", "HAS_COMPLETED_TEST", "LabTest", "hba1c", {"test_date": "2024-09-01", "result": "7.2%"})
+        # ─── DRUG SIDE EFFECT EDGES ───
+        print("[Seed] Creating drug-side-effect edges...")
+        side_effects = [
+            ("metformin", "nausea", "common"), ("metformin", "diarrhea", "common"),
+            ("warfarin", "bruising", "common"), ("warfarin", "bleeding_gums", "uncommon"),
+            ("prednisolone", "weight_gain", "common"), ("prednisolone", "insomnia", "uncommon"),
+            ("fluoxetine", "nausea", "common"), ("fluoxetine", "insomnia", "common"),
+            ("amlodipine", "swelling_legs", "common"), ("amlodipine", "dizziness", "uncommon"),
+            ("simvastatin", "muscle_weakness", "uncommon"),
+        ]
+        for did, sid, freq in side_effects:
+            session.run(
+                "MATCH (d:Drug {drug_id: $did}), (s:Symptom {symptom_id: $sid}) "
+                "MERGE (d)-[r:CAUSES_SIDE_EFFECT]->(s) SET r.frequency = $freq",
+                did=did, sid=sid, freq=freq,
+            )
+        print(f"  -> {len(side_effects)} drug-side-effect edges")
 
-    # Patient 5: Meera (Bengali) - New patient
-    conn.upsertVertex("Patient", "meera", {"name": "Meera Banerjee", "phone": "+919876543214", "language": "bn", "age": 32, "gender": "female"})
-    conn.upsertEdge("Patient", "meera", "PRESENTS_WITH", "Symptom", "cough", {"duration_days": 21, "severity": "severe", "reported_date": today})
-    conn.upsertEdge("Patient", "meera", "PRESENTS_WITH", "Symptom", "fever", {"duration_days": 14, "severity": "moderate", "reported_date": today})
-    conn.upsertEdge("Patient", "meera", "PRESENTS_WITH", "Symptom", "night_sweats", {"duration_days": 14, "severity": "moderate", "reported_date": today})
-    conn.upsertEdge("Patient", "meera", "PRESENTS_WITH", "Symptom", "weight_loss", {"duration_days": 30, "severity": "moderate", "reported_date": today})
+    driver.close()
 
-    print("  -> 5 demo patients with full histories")
-
-    # =====================
-    # SUMMARY
-    # =====================
+    # ─── SUMMARY ───
     print("\n" + "=" * 50)
     print("[Seed] COMPLETE! Summary:")
     print(f"  Symptoms:      {len(symptoms)}")
@@ -521,9 +678,9 @@ def main():
     print(f"  Risk Factors:  {len(risk_factors)}")
     print(f"  Lab Tests:     {len(lab_tests)}")
     print(f"  Protocols:     {len(protocols)}")
-    print(f"  Patients:      5")
-    print(f"  Follow-ups:    1 (pending for today)")
-    print(f"  Total edges:   {edge_count + len(interactions) + len(side_effects) + len(disease_treatments) + len(treatment_drugs) + len(disease_specialists) + len(disease_risks) + len(risk_elevations) + len(disease_tests) + len(disease_protocols) + 30}+")
+    print(f"  Patients:      {len(patients)}")
+    print(f"  Follow-ups:    {len(followups)} (pending for today)")
+    print(f"  Total edges:   {len(disease_symptoms) + len(interactions) + len(referrals) + len(disease_treatments) + len(prescriptions) + len(disease_risks) + len(elevations) + len(disease_tests) + len(disease_protocols) + len(patient_conditions) + len(patient_meds) + len(patient_tests) + len(followups) + len(side_effects)}+")
     print("=" * 50)
 
 

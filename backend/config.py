@@ -3,12 +3,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# TigerGraph
-TG_HOST = os.getenv("TG_HOST", "")
-TG_GRAPHNAME = os.getenv("TG_GRAPHNAME", "AyuNet")
-TG_SECRET = os.getenv("TG_SECRET", "")
-TG_USERNAME = os.getenv("TG_USERNAME", "tigergraph")
-TG_PASSWORD = os.getenv("TG_PASSWORD", "")
+# Neo4j
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
 
 # Groq
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")

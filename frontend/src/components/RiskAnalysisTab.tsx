@@ -37,8 +37,8 @@ export default function RiskAnalysisTab() {
     <div className="h-full flex gap-6">
       {/* Left Panel */}
       <div className="w-[380px] shrink-0 flex flex-col gap-4">
-        <div className="bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl p-5">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm dark:shadow-none">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">
             Select Patient
           </h3>
           <div className="space-y-2">
@@ -48,11 +48,11 @@ export default function RiskAnalysisTab() {
                 onClick={() => setSelected(p.id)}
                 className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
                   selected === p.id
-                    ? "bg-yellow-500/20 border border-yellow-500"
-                    : "bg-slate-800 border border-white/10 hover:border-yellow-500/50"
+                    ? "bg-yellow-100 dark:bg-yellow-500/20 border border-yellow-500"
+                    : "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 hover:border-yellow-500/50"
                 }`}
               >
-                <div className="font-bold text-white text-sm">{p.name}</div>
+                <div className="font-bold text-slate-900 dark:text-white text-sm">{p.name}</div>
                 <div className="text-xs text-slate-500">
                   {p.language.toUpperCase()} | {p.conditions}
                 </div>
@@ -76,47 +76,47 @@ export default function RiskAnalysisTab() {
         {/* Risk predictions */}
         {result?.risks?.predictions && (
           <div className="flex-1 overflow-y-auto space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Risk Predictions (4-hop)
             </h4>
             {result.risks.predictions.map((p: any, i: number) => (
               <div
                 key={i}
-                className={`rounded-xl p-4 border ${
+                className={`rounded-xl p-4 border shadow-sm dark:shadow-none ${
                   p.risk_score > 1.5
-                    ? "bg-red-500/10 border-red-500/50"
-                    : "bg-slate-900/60 border-white/10"
+                    ? "bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/50"
+                    : "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   {p.risk_score > 1.5 && (
-                    <AlertTriangle className="w-4 h-4 text-red-400 animate-pulse" />
+                    <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400 animate-pulse" />
                   )}
-                  <span className="font-bold text-white text-sm">
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">
                     {p.predicted_disease}
                   </span>
                   <span
                     className={`ml-auto font-mono text-sm font-bold ${
-                      p.risk_score > 1.5 ? "text-red-400" : "text-green-400"
+                      p.risk_score > 1.5 ? "text-red-500 dark:text-red-400" : "text-green-600 dark:text-green-400"
                     }`}
                   >
                     {p.risk_score.toFixed(1)}x
                   </span>
                 </div>
-                <div className="text-xs text-slate-400 space-y-1">
+                <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
                   <div>Via: {p.via_risk_factor}</div>
                   <div>Test: {p.required_test}</div>
                   <div>
                     {p.test_completed ? (
-                      <span className="text-green-400">Test completed</span>
+                      <span className="text-green-600 dark:text-green-400">Test completed</span>
                     ) : (
-                      <span className="text-amber-400">Test NOT done</span>
+                      <span className="text-amber-600 dark:text-amber-400">Test NOT done</span>
                     )}
                   </div>
                 </div>
                 {/* Risk bar */}
                 <div className="mt-2 relative">
-                  <div className="w-full bg-slate-800 rounded-full h-2">
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full transition-all ${
                         p.risk_score > 1.5 ? "bg-red-500" : "bg-green-500"
@@ -126,7 +126,7 @@ export default function RiskAnalysisTab() {
                   </div>
                   {/* Threshold line at 1.5x */}
                   <div
-                    className="absolute top-0 h-2 w-0.5 bg-white/50"
+                    className="absolute top-0 h-2 w-0.5 bg-slate-400 dark:bg-white/50"
                     style={{ left: "50%" }}
                   />
                 </div>
@@ -146,8 +146,8 @@ export default function RiskAnalysisTab() {
             layout="concentric"
           />
         ) : (
-          <div className="h-full flex items-center justify-center bg-slate-950/50 rounded-2xl border border-white/10">
-            <p className="text-slate-500 text-sm">
+          <div className="h-full flex items-center justify-center bg-slate-100 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10">
+            <p className="text-slate-400 dark:text-slate-500 text-sm">
               Select a patient to see comorbidity risk analysis
             </p>
           </div>
@@ -161,7 +161,6 @@ function buildRiskNodes(result: any) {
   const nodes: any[] = [];
   const seen = new Set<string>();
 
-  // Patient center
   nodes.push({
     id: result.patient_id || "patient",
     label: result.patient_id || "Patient",

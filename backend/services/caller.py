@@ -27,7 +27,7 @@ async def prepare_call(patient_id: str) -> dict:
     """Pre-generate the entire call script + audio BEFORE dialing.
     Returns call prep data with all turns ready.
     """
-    # 1. Get full patient context from TigerGraph
+    # 1. Get full patient context from Neo4j
     context = graph_service.run_patient_context(patient_id)
 
     patient_name = context.get("patient_name", "Patient")

@@ -62,7 +62,7 @@ async def process_call_response(call_sid: str, turn: int, speech_result: str):
         state["realtime_diagnosis"] = diagnose_result
         state["realtime_risk"] = risk_result
 
-    # Upsert follow-up data back to TigerGraph
+    # Upsert follow-up data back to Neo4j
     followup_data = {
         "status": "completed",
         "pain_score": pain_score,

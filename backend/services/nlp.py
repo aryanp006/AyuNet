@@ -86,7 +86,7 @@ async def generate_followup_script(patient_context: dict, followup_day: int, lan
             {
                 "role": "user",
                 "content": (
-                    f"Patient context from TigerGraph:\n{json.dumps(patient_context, indent=2)}\n\n"
+                    f"Patient context from Neo4j graph:\n{json.dumps(patient_context, indent=2)}\n\n"
                     f"This is follow-up day {followup_day}."
                 ),
             },

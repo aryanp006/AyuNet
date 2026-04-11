@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import cytoscape, { Core } from "cytoscape";
+import cytoscape, { type Core } from "cytoscape";
 // @ts-ignore
 import cola from "cytoscape-cola";
 
@@ -63,6 +63,8 @@ export default function GraphView({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const isDark = document.documentElement.classList.contains('dark');
+
     const elements: any[] = [];
 
     nodes.forEach((n) => {
@@ -111,7 +113,7 @@ export default function GraphView({
             "text-max-width": "80px",
             "text-valign": "bottom",
             "text-margin-y": 8,
-            color: "#cbd5e1",
+            color: isDark ? "#cbd5e1" : "#1e293b",
             "border-width": 2,
             "border-color": "data(nodeColor)",
             "border-opacity": 0.5,
@@ -132,14 +134,14 @@ export default function GraphView({
           selector: "edge",
           style: {
             width: "mapData(weight, 0, 1, 1, 5)",
-            "line-color": "#475569",
-            "target-arrow-color": "#475569",
+            "line-color": isDark ? "#475569" : "#cbd5e1",
+            "target-arrow-color": isDark ? "#475569" : "#cbd5e1",
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
             "line-opacity": 0.6,
             label: "data(label)",
             "font-size": "8px",
-            color: "#94a3b8",
+            color: isDark ? "#94a3b8" : "#64748b",
             "text-rotation": "autorotate",
             "transition-property": "line-color, line-opacity, width",
             "transition-duration": 400,
@@ -232,7 +234,6 @@ export default function GraphView({
 
     cyRef.current = cy;
 
-    // Run animation if sequence provided
     if (animationSequence && animationSequence.length > 0) {
       runAnimation(cy, animationSequence);
     }
@@ -285,20 +286,17 @@ export default function GraphView({
   async function runAnimation(cy: Core, sequence: AnimationHop[]) {
     setAnimating(true);
 
-    // Hide all elements first
     cy.elements().addClass("hidden-node");
     cy.edges().addClass("hidden-edge");
 
     for (const hop of sequence) {
       setCurrentHop(hop.hop);
 
-      // Show nodes for this hop
       for (const nodeId of hop.nodes) {
         const node = cy.getElementById(nodeId);
         if (node.length) {
           node.removeClass("hidden-node");
           node.addClass("highlighted");
-          // Ripple effect
           node.animate(
             {
               style: { width: 70, height: 70 },
@@ -316,7 +314,6 @@ export default function GraphView({
         }
       }
 
-      // Show edges for this hop
       for (const edgeId of hop.edges) {
         const edge = cy.getElementById(edgeId);
         if (edge.length) {
@@ -325,11 +322,9 @@ export default function GraphView({
         }
       }
 
-      // Wait between hops
       await new Promise((r) => setTimeout(r, 600));
     }
 
-    // After animation: dim non-traversed, keep traversed highlighted
     setAnimating(false);
     setCurrentHop(sequence.length);
   }
@@ -342,18 +337,18 @@ export default function GraphView({
 
   return (
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full bg-slate-950/50 rounded-2xl border border-white/10" />
+      <div ref={containerRef} className="h-full w-full bg-slate-100 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10" />
 
       {/* Hop progress indicator */}
       {animationSequence && animationSequence.length > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-slate-900/90 backdrop-blur px-4 py-2 rounded-full border border-white/10">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
           {animationSequence.map((hop) => (
             <div key={hop.hop} className="flex items-center gap-2">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                   currentHop >= hop.hop
                     ? "bg-indigo-500 text-white scale-110"
-                    : "bg-slate-700 text-slate-400"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
                 }`}
               >
                 {hop.hop}
@@ -361,7 +356,7 @@ export default function GraphView({
               {hop.hop < animationSequence.length && (
                 <div
                   className={`w-6 h-0.5 ${
-                    currentHop > hop.hop ? "bg-indigo-500" : "bg-slate-700"
+                    currentHop > hop.hop ? "bg-indigo-500" : "bg-slate-200 dark:bg-slate-700"
                   }`}
                 />
               )}
@@ -369,7 +364,7 @@ export default function GraphView({
           ))}
           <button
             onClick={replayAnimation}
-            className="ml-3 text-xs text-indigo-400 hover:text-indigo-300 font-bold"
+            className="ml-3 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-bold"
           >
             Replay
           </button>
@@ -377,7 +372,7 @@ export default function GraphView({
       )}
 
       {/* Legend */}
-      <div className="absolute top-3 right-3 bg-slate-900/90 backdrop-blur p-3 rounded-xl border border-white/10 text-xs space-y-1">
+      <div className="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur p-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs space-y-1 shadow-sm dark:shadow-none">
         {Object.entries(NODE_STYLES)
           .filter(([type]) => nodes.some((n) => n.type === type))
           .map(([type, style]) => (
@@ -386,7 +381,7 @@ export default function GraphView({
                 className="w-3 h-3 rounded-sm"
                 style={{ backgroundColor: style.color }}
               />
-              <span className="text-slate-400">{type}</span>
+              <span className="text-slate-600 dark:text-slate-400">{type}</span>
             </div>
           ))}
       </div>

@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-pyTigerGraph
+neo4j
 groq
 pydantic
 python-dotenv

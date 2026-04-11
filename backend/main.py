@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     # Wire WebSocket broadcast to followup service
     followup_service.set_ws_broadcast(alerts.broadcast_alert)
 
-    # Warm up TigerGraph
+    # Warm up Neo4j
     await graph_service.warm_up()
 
     # Pre-cache PageRank
@@ -32,8 +32,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[AyuNet] PageRank cache failed (will retry): {e}")
 
-    # Schedule TigerGraph keep-alive ping every 4 minutes
-    scheduler.add_job(graph_service.keep_alive, "interval", minutes=4, id="tg_keepalive")
 
     # Schedule daily follow-up check
     scheduler.add_job(

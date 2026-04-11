@@ -15,23 +15,23 @@ import {
 
 export default function App() {
   const navigate = useNavigate();
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('ayunet-theme');
+    return saved === 'light' ? 'light' : 'dark';
+  });
 
   const toggleTheme = () => {
-    setTheme(prev => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      if (next === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      return next;
-    });
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('ayunet-theme', theme);
+  }, [theme]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -147,7 +147,7 @@ export default function App() {
           >
             <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 backdrop-blur-sm mb-8">
               <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400">TigerGraph Native + Indic Voice AI</span>
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400">Neo4j Graph + Indic Voice AI</span>
             </motion.div>
             
             <motion.h1 variants={itemVariants} className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8">
@@ -235,20 +235,16 @@ export default function App() {
                       <div className="h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
                         <Network className="h-4 w-4 text-indigo-400" />
                       </div>
-                      <span className="text-xs font-bold uppercase tracking-widest text-indigo-400">TigerGraph JSON Edge Injection</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-indigo-400">Neo4j Cypher Query</span>
                     </div>
                     <div className="bg-[#0D1117] p-5 rounded-2xl border border-indigo-500/30 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
                       <pre className="font-mono text-xs text-emerald-400 leading-loose relative z-10 overflow-x-auto">
-{`{
-  "vertex_type": "Patient",
-  "vertex_id": "P_1024",
-  "attributes": {
-    "symptoms": ["fever", "abdominal_pain"],
-    "duration_days": 2,
-    "language": "hi",
-    "risk_multiplier": 1.4
-  }
-}`}
+{`MATCH (s:Symptom)<-[r:HAS_SYMPTOM]-(d:Disease)
+WHERE s.name IN ["fever", "abdominal_pain"]
+WITH d, count(s) AS matched,
+     sum(r.weight) AS score
+RETURN d.name, matched, score
+ORDER BY score DESC LIMIT 5`}
                       </pre>
                     </div>
                   </div>
@@ -263,7 +259,7 @@ export default function App() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-fuchsia-500">Process natively.</span>
               </h2>
               <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-10 font-medium">
-                Patients communicate in their native language using Sarvam AI. Our platform translates, extracts structured JSON, and feeds it directly into TigerGraph nodes in real-time, executing multi-hop queries instantly.
+                Patients communicate in their native language using Sarvam AI. Our platform translates, extracts structured symptoms, and runs multi-hop Cypher queries on Neo4j in real-time for instant diagnosis.
               </p>
               
               <div className="space-y-6">
@@ -299,15 +295,15 @@ export default function App() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/20 blur-[100px] rounded-full -z-10" />
             <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-6">Graph Intelligence</h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
-              AyuNet utilizes advanced TigerGraph infrastructure to traverse deep clinical networks faster than relational SQL databases ever could.
+              AyuNet utilizes advanced Neo4j graph infrastructure to traverse deep clinical networks faster than relational SQL databases ever could.
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard 
               icon={Network} 
-              title="Multi-hop Traversal" 
-              desc="4-hop GSQL queries mapping symptoms to diseases, finding underlying causes for rare presentations." 
+              title="Multi-hop Traversal"
+              desc="4-hop Cypher queries mapping symptoms to diseases, finding underlying causes for rare presentations." 
               color="indigo" 
             />
             <FeatureCard 
@@ -337,7 +333,7 @@ export default function App() {
             <FeatureCard 
               icon={BrainCircuit} 
               title="Disease PageRank" 
-              desc="Native tg_pagerank GDS integration to weigh differential diagnoses upon connectivity." 
+              desc="Degree centrality analysis to weigh differential diagnoses by graph connectivity." 
               color="sky" 
             />
           </div>
@@ -421,7 +417,7 @@ export default function App() {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="mt-12 text-xs font-bold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400"
           >
-            &copy; 2026 AyuNet Core | TigerGraph
+            &copy; 2026 AyuNet Core | Neo4j
           </motion.div>
         </div>
       </footer>

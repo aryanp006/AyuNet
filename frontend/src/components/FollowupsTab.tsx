@@ -18,7 +18,6 @@ export default function FollowupsTab({ alerts }: Props) {
     loadFollowups();
   }, []);
 
-  // Filter call transcripts from alerts
   useEffect(() => {
     const callAlerts = alerts.filter(
       (a) => a.type === "call_transcript" || a.type === "risk_alert"
@@ -33,7 +32,6 @@ export default function FollowupsTab({ alerts }: Props) {
       setFollowups(data.followups?.patients || []);
     } catch (err) {
       console.error(err);
-      // Demo fallback data
       setFollowups([
         {
           patient_id: "karthik",
@@ -69,7 +67,6 @@ export default function FollowupsTab({ alerts }: Props) {
         ...prev,
         [patientId]: "ringing",
       }));
-      // Update to in-progress after a delay (simulating Twilio pickup)
       setTimeout(() => {
         setCallStatus((prev) => ({
           ...prev,
@@ -98,11 +95,11 @@ export default function FollowupsTab({ alerts }: Props) {
   }
 
   const statusColors: Record<string, string> = {
-    preparing: "text-yellow-400",
-    ringing: "text-blue-400",
-    "in-progress": "text-green-400",
-    completed: "text-slate-400",
-    failed: "text-red-400",
+    preparing: "text-yellow-600 dark:text-yellow-400",
+    ringing: "text-blue-600 dark:text-blue-400",
+    "in-progress": "text-green-600 dark:text-green-400",
+    completed: "text-slate-500 dark:text-slate-400",
+    failed: "text-red-500 dark:text-red-400",
   };
 
   const statusIcons: Record<string, any> = {
@@ -118,7 +115,7 @@ export default function FollowupsTab({ alerts }: Props) {
       {/* Left: Follow-up list */}
       <div className="w-[400px] shrink-0 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
             Today's Follow-ups
           </h3>
           <button
@@ -134,7 +131,7 @@ export default function FollowupsTab({ alerts }: Props) {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-24 bg-slate-900/60 rounded-xl animate-pulse border border-white/5"
+                className="h-24 bg-slate-100 dark:bg-slate-900/60 rounded-xl animate-pulse border border-slate-200 dark:border-white/5"
               />
             ))}
           </div>
@@ -147,17 +144,17 @@ export default function FollowupsTab({ alerts }: Props) {
               return (
                 <div
                   key={fu.patient_id}
-                  className={`bg-slate-900/60 backdrop-blur border rounded-xl p-4 transition-all ${
+                  className={`bg-white dark:bg-slate-900/60 backdrop-blur border rounded-xl p-4 transition-all shadow-sm dark:shadow-none ${
                     status === "in-progress"
-                      ? "border-green-500/50"
+                      ? "border-green-400 dark:border-green-500/50"
                       : status === "ringing"
-                      ? "border-blue-500/50"
-                      : "border-white/10"
+                      ? "border-blue-400 dark:border-blue-500/50"
+                      : "border-slate-200 dark:border-white/10"
                   }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="font-bold text-white">{fu.patient_name}</h4>
+                      <h4 className="font-bold text-slate-900 dark:text-white">{fu.patient_name}</h4>
                       <div className="text-xs text-slate-500 space-x-2">
                         <span>{fu.language?.toUpperCase()}</span>
                         <span>|</span>
@@ -214,13 +211,13 @@ export default function FollowupsTab({ alerts }: Props) {
 
       {/* Right: Live transcript + alerts */}
       <div className="flex-1 flex flex-col gap-4">
-        <div className="bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl p-5 flex-1 overflow-y-auto">
-          <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex-1 overflow-y-auto shadow-sm dark:shadow-none">
+          <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">
             Live Call Transcript
           </h4>
           {transcripts.length === 0 ? (
             <div className="h-full flex items-center justify-center">
-              <p className="text-slate-500 text-sm">
+              <p className="text-slate-400 dark:text-slate-500 text-sm">
                 Call a patient to see the live transcript here
               </p>
             </div>
@@ -231,40 +228,40 @@ export default function FollowupsTab({ alerts }: Props) {
                   key={i}
                   className={`p-3 rounded-xl border ${
                     t.type === "risk_alert"
-                      ? "bg-red-500/10 border-red-500/50"
-                      : "bg-slate-800/60 border-white/5"
+                      ? "bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/50"
+                      : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-white/5"
                   }`}
                 >
                   {t.type === "risk_alert" ? (
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-400 animate-pulse" />
-                      <span className="font-bold text-red-300 text-sm">
+                      <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400 animate-pulse" />
+                      <span className="font-bold text-red-600 dark:text-red-300 text-sm">
                         RISK ALERT: {t.patient_name}
                       </span>
-                      <span className="ml-auto text-xs text-red-400">
+                      <span className="ml-auto text-xs text-red-500 dark:text-red-400">
                         Pain: {t.pain_score} | Symptoms: {t.new_symptoms?.join(", ")}
                       </span>
                     </div>
                   ) : (
                     <>
-                      <div className="text-xs text-slate-500 mb-1">
+                      <div className="text-xs text-slate-400 dark:text-slate-500 mb-1">
                         Turn {t.turn} | {t.call_sid?.slice(0, 10)}
                       </div>
-                      <p className="text-sm text-white">{t.patient_speech}</p>
+                      <p className="text-sm text-slate-900 dark:text-white">{t.patient_speech}</p>
                       {t.extracted && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {t.extracted.pain_score != null && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                            <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">
                               Pain: {t.extracted.pain_score}
                             </span>
                           )}
                           {t.extracted.took_medication != null && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-300">
+                            <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300">
                               Medication: {t.extracted.took_medication ? "Yes" : "No"}
                             </span>
                           )}
                           {t.extracted.new_symptoms?.length > 0 && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-300">
+                            <span className="text-xs px-2 py-0.5 rounded bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-300">
                               New: {t.extracted.new_symptoms.join(", ")}
                             </span>
                           )}

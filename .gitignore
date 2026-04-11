@@ -30,3 +30,11 @@ Thumbs.db
 # Misc
 *.log
 .claude/
+
+# Sensitive files (NEVER commit)
+ayu api.txt
+
+# Internal planning docs
+tasks.md
+features_list.txt
+SETUP_GUIDE.md
