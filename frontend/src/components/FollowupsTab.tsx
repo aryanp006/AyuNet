@@ -34,6 +34,15 @@ export default function FollowupsTab({ alerts }: Props) {
       console.error(err);
       setFollowups([
         {
+          patient_id: "aryan",
+          patient_name: "Aryan",
+          phone: "+91-7985582272",
+          language: "hi",
+          condition: "Dengue Fever",
+          followup_day: 1,
+          scheduled_date: new Date().toISOString().split("T")[0],
+        },
+        {
           patient_id: "karthik",
           patient_name: "Karthik",
           phone: "+91-XXXXXXXX",
@@ -62,7 +71,7 @@ export default function FollowupsTab({ alerts }: Props) {
     setCallStatus((prev) => ({ ...prev, [patientId]: "preparing" }));
 
     try {
-      const data = await api.initiateCall(patientId);
+      await api.initiateCall(patientId);
       setCallStatus((prev) => ({
         ...prev,
         [patientId]: "ringing",

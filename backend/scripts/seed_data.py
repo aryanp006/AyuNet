@@ -550,7 +550,7 @@ def main():
             )
         print(f"  -> {len(disease_protocols)} disease-protocol edges")
 
-        # ─── PATIENTS (5) ───
+        # ─── PATIENTS (6) ───
         print("[Seed] Upserting patients...")
         patients = [
             ("priya", "Priya", "+919876543210", "hi", 32, "female"),
@@ -558,6 +558,7 @@ def main():
             ("ananya", "Ananya", "+919876543212", "te", 28, "female"),
             ("rahul", "Rahul", "+919876543213", "en", 55, "male"),
             ("meera", "Meera", "+919876543214", "bn", 35, "female"),
+            ("aryan", "Aryan", "+917985582272", "hi", 21, "male"),
         ]
         for pid, name, phone, lang, age, gender in patients:
             session.run(
@@ -578,6 +579,7 @@ def main():
             ("rahul", "hypertension", "2020-01-01", "chronic"),
             ("rahul", "diabetes_t2", "2021-06-15", "chronic"),
             ("rahul", "cad", "2023-09-01", "chronic"),
+            ("aryan", "dengue", TODAY, "active"),
         ]
         for pid, did, diag_date, status in patient_conditions:
             session.run(
@@ -599,6 +601,7 @@ def main():
             ("rahul", "amlodipine", "5mg 1x/day", "2020-01-01"),
             ("rahul", "simvastatin", "20mg 1x/day", "2023-09-01"),
             ("rahul", "aspirin", "75mg 1x/day", "2023-09-01"),
+            ("aryan", "paracetamol", "500mg 3x/day (after meals)", TODAY),
         ]
         for pid, did, dosage, start in patient_meds:
             session.run(
@@ -617,6 +620,7 @@ def main():
             ("rahul", "lt_lipid", "2023-09-01", "LDL 180"),
             ("rahul", "lt_hba1c", "2024-01-10", "7.2%"),
             ("karthik", "lt_ecg", "2024-02-20", "normal post-op"),
+            ("aryan", "lt_cbc", TODAY, "Platelet count: 85,000/μL (low), WBC: 3,200/μL (low)"),
         ]
         for pid, tid, test_date, result_val in patient_tests:
             session.run(
@@ -626,9 +630,25 @@ def main():
             )
         print(f"  -> {len(patient_tests)} patient-labtest edges")
 
+        # ─── PATIENT → SYMPTOM (PRESENTS_WITH) — for Aryan demo ───
+        print("[Seed] Creating patient-symptom edges...")
+        patient_symptoms = [
+            ("aryan", "fever"), ("aryan", "headache"), ("aryan", "body_aches"),
+            ("aryan", "nausea"), ("aryan", "fatigue"), ("aryan", "chills"),
+            ("aryan", "joint_pain"), ("aryan", "loss_of_appetite"),
+        ]
+        for pid, sid in patient_symptoms:
+            session.run(
+                "MATCH (p:Patient {patient_id: $pid}), (s:Symptom {symptom_id: $sid}) "
+                "MERGE (p)-[:PRESENTS_WITH]->(s)",
+                pid=pid, sid=sid,
+            )
+        print(f"  -> {len(patient_symptoms)} patient-symptom edges")
+
         # ─── FOLLOW-UPS ───
         print("[Seed] Creating follow-ups...")
         followups = [
+            ("fu_aryan_today", "pending", TODAY, "aryan", "Dengue Fever"),
             ("fu_karthik_today", "pending", TODAY, "karthik", "Coronary Artery Disease"),
             ("fu_priya_today", "pending", TODAY, "priya", "Dengue Fever"),
         ]

@@ -47,7 +47,7 @@ def main():
 
     # Re-create via setup script
     print("\n[3/3] Re-creating constraints and indexes...")
-    from scripts.setup_graph import main as setup_main
+    from setup_graph import main as setup_main
     setup_main()
 
     driver.close()

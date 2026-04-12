@@ -6,6 +6,7 @@ from config import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, B
 from services import graph as graph_service
 from services import nlp as nlp_service
 from services import voice as voice_service
+from services.voice import LANGUAGE_MAP
 
 twilio_client: Client | None = None
 
@@ -49,8 +50,15 @@ async def prepare_call(patient_id: str) -> dict:
 
     audio_map = {}
     for key, audio in zip(turn_keys, audio_results):
-        if isinstance(audio, bytes):
+        if isinstance(audio, Exception):
+            print(f"[TTS] FAILED for {key}: {audio}")
+        elif isinstance(audio, bytes) and len(audio) > 0:
             audio_map[key] = base64.b64encode(audio).decode()
+        else:
+            print(f"[TTS] Empty audio for {key}")
+
+    if not audio_map:
+        print(f"[TTS] WARNING: No audio generated for any turn! Script will use Twilio <Say> fallback.")
 
     call_prep = {
         "patient_id": patient_id,
@@ -89,7 +97,14 @@ async def initiate_call(call_prep: dict) -> str:
 def build_turn_twiml(call_sid: str, turn_num: int) -> str:
     """Build TwiML response for a specific turn using pre-generated audio."""
     state = call_states.get(call_sid, {})
-    turn_key = f"turn_{turn_num}"
+    language = state.get("language", "hi")
+
+    # For turn 5, pick safe or alert variant based on risk_flag
+    if turn_num == 5:
+        turn_key = "turn_5_alert" if state.get("risk_flag") else "turn_5_safe"
+    else:
+        turn_key = f"turn_{turn_num}"
+
     audio_b64 = state.get("audio", {}).get(turn_key)
 
     response = VoiceResponse()
@@ -97,13 +112,24 @@ def build_turn_twiml(call_sid: str, turn_num: int) -> str:
     if audio_b64:
         # Play pre-generated audio
         response.play(f"{BASE_URL}/api/calls/audio/{call_sid}/{turn_key}")
+    else:
+        # Fallback: use Twilio's built-in TTS if Sarvam audio is missing
+        script_text = state.get("script", {}).get(turn_key, {}).get("script", "")
+        if script_text:
+            twilio_lang = LANGUAGE_MAP.get(language, "hi-IN")
+            response.say(script_text, language=twilio_lang)
+            print(f"[TwiML] Using <Say> fallback for {turn_key}")
+        else:
+            print(f"[TwiML] WARNING: No audio AND no script for {turn_key}")
 
     if turn_num < 5:
+        # Map language to Twilio speech recognition locale
+        twilio_lang = LANGUAGE_MAP.get(language, "hi-IN")
         # Gather patient response
         gather = Gather(
             input="speech",
             action=f"{BASE_URL}/api/calls/webhook/{call_sid}/{turn_num + 1}",
-            language="hi-IN",
+            language=twilio_lang,
             speech_timeout="auto",
             timeout=10,
         )

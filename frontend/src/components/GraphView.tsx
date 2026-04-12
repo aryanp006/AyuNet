@@ -58,7 +58,7 @@ export default function GraphView({
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
   const [currentHop, setCurrentHop] = useState(-1);
-  const [animating, setAnimating] = useState(false);
+  const [, setAnimating] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;

@@ -28,7 +28,11 @@ async def webhook_start(request: Request):
     """Twilio hits this when the call connects. Play Turn 1."""
     form = await request.form()
     call_sid = form.get("CallSid", "")
+    print(f"[Webhook] START hit for call_sid={call_sid}")
+    state = caller_service.call_states.get(call_sid, {})
+    print(f"[Webhook] State found: {bool(state)}, audio keys: {list(state.get('audio', {}).keys())}")
     twiml = caller_service.build_turn_twiml(call_sid, 1)
+    print(f"[Webhook] TwiML for turn 1: {twiml[:300]}")
     return Response(content=twiml, media_type="application/xml")
 
 
@@ -57,10 +61,12 @@ async def webhook_turn(call_sid: str, turn: int, request: Request):
 @router.get("/audio/{call_sid}/{turn_key}")
 async def get_call_audio(call_sid: str, turn_key: str):
     """Serve pre-generated audio for a specific call turn."""
+    print(f"[Audio] Request for call_sid={call_sid}, turn_key={turn_key}")
     state = caller_service.call_states.get(call_sid, {})
 
     # Check pre-generated audio
     audio_b64 = state.get("audio", {}).get(turn_key)
+    print(f"[Audio] Found audio: {bool(audio_b64)}, b64 length: {len(audio_b64) if audio_b64 else 0}")
 
     # Check filler cache
     if not audio_b64 and turn_key.startswith("filler_"):
@@ -70,9 +76,12 @@ async def get_call_audio(call_sid: str, turn_key: str):
             audio_b64 = base64.b64encode(filler).decode()
 
     if not audio_b64:
+        print(f"[Audio] 404 - No audio found for {turn_key}")
         return Response(status_code=404)
 
     audio_bytes = base64.b64decode(audio_b64)
+    # Sarvam bulbul:v1 returns WAV by default
+    print(f"[Audio] Serving {len(audio_bytes)} bytes as audio/wav")
     return Response(content=audio_bytes, media_type="audio/wav")
 
 
@@ -85,7 +94,7 @@ async def call_status(request: Request):
 
     state = caller_service.call_states.pop(call_sid, None)
     if state:
-        print(f"[Call] {call_sid} → {status} (patient: {state.get('patient_name')})")
+        print(f"[Call] {call_sid} -> {status} (patient: {state.get('patient_name')})")
 
     return {"status": "ok"}
 

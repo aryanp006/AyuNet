@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { api } from "../lib/api";
 import GraphView from "./GraphView";
 

@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import GraphView from "./GraphView";
 
 const PATIENTS = [
+  { id: "aryan", name: "Aryan", language: "hi", conditions: "Dengue (Active)" },
   { id: "priya", name: "Priya", language: "hi", conditions: "Dengue + Diabetes" },
   { id: "karthik", name: "Karthik", language: "ta", conditions: "Post-surgery" },
   { id: "ananya", name: "Ananya", language: "te", conditions: "Undiagnosed" },
