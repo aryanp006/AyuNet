@@ -20,7 +20,7 @@ import DrugCheckTab from "../components/DrugCheckTab";
 import TreatmentPathTab from "../components/TreatmentPathTab";
 import RiskAnalysisTab from "../components/RiskAnalysisTab";
 import FollowupsTab from "../components/FollowupsTab";
-import LiveKitVoice from "../components/LiveKitVoice";
+import VoiceRoom from "../components/VoiceRoom";
 
 const TABS = [
   { id: "diagnose", label: "Diagnose", icon: Search, color: "indigo" },
@@ -63,6 +63,7 @@ const TAB_COLORS: Record<string, { active: string; icon: string }> = {
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>("diagnose");
   const { alerts, latestAlert, connected, clearLatest } = useWebSocket();
+  const [voiceRoomOpen, setVoiceRoomOpen] = useState(false);
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const saved = localStorage.getItem("ayunet-theme");
@@ -223,7 +224,7 @@ export default function Dashboard() {
                   <KpiCard
                     label="Voice Engine"
                     value="Sarvam AI"
-                    sub="bulbul:v1 + saarika:v2"
+                    sub="bulbul:v2 + saarika:v2"
                     color="indigo"
                   />
                   <KpiCard
@@ -240,8 +241,30 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {/* LiveKit voice component */}
-                <LiveKitVoice />
+                {/* Trigger button */}
+                <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-2xl p-8 shadow-sm dark:shadow-none flex flex-col items-center gap-6">
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 animate-pulse-slow">
+                      <Mic className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="absolute -inset-3 rounded-full border-2 border-indigo-500/20 animate-ping" style={{ animationDuration: "2s" }} />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
+                      Voice AI Assistant
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Start a real-time voice conversation with AyuNet's healthcare AI
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setVoiceRoomOpen(true)}
+                    className="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02]"
+                  >
+                    <Mic className="w-4 h-4" />
+                    Start Voice Session
+                  </button>
+                </div>
 
                 {/* Info card */}
                 <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm dark:shadow-none">
@@ -250,7 +273,7 @@ export default function Dashboard() {
                   </h4>
                   <div className="space-y-2">
                     {[
-                      "Click 'Start Voice Chat' and speak in any supported language",
+                      "Click 'Start Voice Session' to open the voice room",
                       "AI processes your speech through Sarvam STT in real-time",
                       "Groq LLM generates a contextual healthcare response",
                       "Response is spoken back via Sarvam TTS with a natural voice",
@@ -269,6 +292,9 @@ export default function Dashboard() {
           )}
         </div>
       </main>
+
+      {/* Voice Room Overlay */}
+      <VoiceRoom open={voiceRoomOpen} onClose={() => setVoiceRoomOpen(false)} />
     </div>
   );
 }

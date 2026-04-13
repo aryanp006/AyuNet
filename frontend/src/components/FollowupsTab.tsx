@@ -8,6 +8,8 @@ import {
   AlertTriangle,
   PhoneOutgoing,
   Loader2,
+  PhoneForwarded,
+  X,
 } from "lucide-react";
 import { api } from "../lib/api";
 import type { Alert } from "../hooks/useWebSocket";
@@ -30,6 +32,12 @@ export default function FollowupsTab({ alerts }: Props) {
   const [quickLang, setQuickLang] = useState("hi");
   const [quickCalling, setQuickCalling] = useState(false);
   const [quickCallSid, setQuickCallSid] = useState("");
+
+  // Alternate number state per patient
+  const [altNumberOpen, setAltNumberOpen] = useState<string | null>(null);
+  const [altPhone, setAltPhone] = useState("");
+  const [altCalling, setAltCalling] = useState(false);
+  const [altCallSid, setAltCallSid] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadFollowups();
@@ -174,6 +182,38 @@ export default function FollowupsTab({ alerts }: Props) {
     setQuickCallSid("");
   }
 
+  async function handleAltCall(patientId: string, patientName: string, language: string) {
+    if (!altPhone.trim()) return;
+    setAltCalling(true);
+    try {
+      const data = await api.callNumber(altPhone, patientName, language);
+      if (data.call_sid) {
+        setAltCallSid((prev) => ({ ...prev, [patientId]: data.call_sid }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAltCalling(false);
+    }
+  }
+
+  async function handleEndAltCall(patientId: string) {
+    const sid = altCallSid[patientId];
+    if (!sid) return;
+    try {
+      await api.endCall(sid);
+    } catch (err) {
+      console.error(err);
+    }
+    setAltCallSid((prev) => {
+      const next = { ...prev };
+      delete next[patientId];
+      return next;
+    });
+    setAltNumberOpen(null);
+    setAltPhone("");
+  }
+
   const statusColors: Record<string, string> = {
     preparing: "text-yellow-600 dark:text-yellow-400",
     ringing: "text-blue-600 dark:text-blue-400",
@@ -313,15 +353,63 @@ export default function FollowupsTab({ alerts }: Props) {
                         <span>Day {fu.followup_day}</span>
                       </div>
                     </div>
-                    {status && (
-                      <div
-                        className={`flex items-center gap-1.5 ${statusColors[status]}`}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setAltNumberOpen(altNumberOpen === fu.patient_id ? null : fu.patient_id);
+                          setAltPhone("");
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-indigo-500 transition-colors"
+                        title="Call alternate number"
                       >
-                        <StatusIcon className="w-3.5 h-3.5" />
-                        <span className="text-[11px] font-bold capitalize">{status}</span>
-                      </div>
-                    )}
+                        <PhoneForwarded className="w-3.5 h-3.5" />
+                      </button>
+                      {status && (
+                        <div
+                          className={`flex items-center gap-1.5 ${statusColors[status]}`}
+                        >
+                          <StatusIcon className="w-3.5 h-3.5" />
+                          <span className="text-[11px] font-bold capitalize">{status}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {altNumberOpen === fu.patient_id && (
+                    <div className="mb-3 flex gap-2 items-center">
+                      <input
+                        type="tel"
+                        value={altPhone}
+                        onChange={(e) => setAltPhone(e.target.value)}
+                        placeholder="Alternate number..."
+                        className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      />
+                      {!altCallSid[fu.patient_id] ? (
+                        <button
+                          onClick={() => handleAltCall(fu.patient_id, fu.patient_name, fu.language)}
+                          disabled={altCalling || !altPhone.trim()}
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 transition-all"
+                        >
+                          {altCalling ? <Loader2 className="w-3 h-3 animate-spin" /> : <Phone className="w-3 h-3" />}
+                          Call
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleEndAltCall(fu.patient_id)}
+                          className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
+                        >
+                          <PhoneOff className="w-3 h-3" />
+                          End
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { setAltNumberOpen(null); setAltPhone(""); }}
+                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
 
                   <button
                     onClick={() =>

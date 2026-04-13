@@ -1,23 +1,33 @@
 import { useState, useRef } from "react";
-import { Mic, MicOff, Search, Volume2 } from "lucide-react";
+import { Mic, MicOff, Search, Volume2, UserPlus, Phone, CheckCircle2 } from "lucide-react";
 import { api } from "../lib/api";
 import GraphView from "./GraphView";
 
 export default function DiagnoseTab() {
   const [input, setInput] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [language, setLanguage] = useState("hi");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [recording, setRecording] = useState(false);
   const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [registeredPatient, setRegisteredPatient] = useState<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  const canAnalyze = input.trim() && patientName.trim() && phoneNumber.trim();
+
   async function handleAnalyze() {
-    if (!input.trim()) return;
+    if (!canAnalyze) return;
     setLoading(true);
+    setRegisteredPatient(null);
     try {
-      const data = await api.analyze(input);
+      const data = await api.analyze(input, patientName, phoneNumber, language);
       setResult(data);
+      if (data.registered_patient) {
+        setRegisteredPatient(data.registered_patient);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -64,8 +74,11 @@ export default function DiagnoseTab() {
             if (sttResult.transcript) {
               setInput(sttResult.transcript);
               // Auto-analyze after STT
-              const data = await api.analyze(sttResult.transcript);
+              const data = await api.analyze(sttResult.transcript, patientName, phoneNumber, language);
               setResult(data);
+              if (data.registered_patient) {
+                setRegisteredPatient(data.registered_patient);
+              }
             }
           } catch (err) {
             console.error("STT failed:", err);
@@ -101,10 +114,54 @@ export default function DiagnoseTab() {
             placeholder="e.g. Mujhe do din se bukhar hai, pet mein dard..."
             className="w-full h-28 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
           />
+
+          {/* Patient Info (mandatory) */}
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2 mb-1">
+              <UserPlus className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                Patient Info
+              </span>
+              <span className="text-[10px] text-red-400 font-semibold">Required</span>
+            </div>
+            <input
+              type="text"
+              value={patientName}
+              onChange={(e) => setPatientName(e.target.value)}
+              placeholder="Patient name *"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+            />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Phone number * (e.g. +91...)"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                />
+              </div>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-20 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-2 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              >
+                <option value="hi">HI</option>
+                <option value="en">EN</option>
+                <option value="ta">TA</option>
+                <option value="te">TE</option>
+                <option value="bn">BN</option>
+                <option value="kn">KN</option>
+                <option value="mr">MR</option>
+              </select>
+            </div>
+          </div>
+
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleAnalyze}
-              disabled={loading}
+              disabled={loading || !canAnalyze}
               className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
             >
               {loading ? (
@@ -148,6 +205,24 @@ export default function DiagnoseTab() {
                 Severity: <span className="text-amber-600 dark:text-amber-400">{result.extracted.severity}</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Registration success */}
+        {registeredPatient && (
+          <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-4 shadow-sm dark:shadow-none">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                Patient Registered for Follow-up
+              </span>
+            </div>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              {registeredPatient.patient_name} ({registeredPatient.phone}) — {registeredPatient.condition}
+            </p>
+            <p className="text-[11px] text-emerald-500/70 dark:text-emerald-400/60 mt-1">
+              Go to Follow-ups tab to call this patient
+            </p>
           </div>
         )}
 

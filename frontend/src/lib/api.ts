@@ -10,10 +10,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  analyze: (text: string) =>
+  analyze: (text: string, patientName?: string, phoneNumber?: string, language?: string) =>
     request<any>("/api/analyze", {
       method: "POST",
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({
+        text,
+        patient_name: patientName || "",
+        phone_number: phoneNumber || "",
+        language: language || "",
+      }),
     }),
 
   drugCheck: (drugs: string[]) =>
