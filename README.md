@@ -1,3 +1,10 @@
+DEPLOYED LINK -    https://ayu1.vercel.app/
+
+
+
+
+
+
 <p align="center">
   <img src="https://img.shields.io/badge/Neo4j-4581C3?style=for-the-badge&logo=neo4j&logoColor=white" alt="Neo4j" />
   <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
