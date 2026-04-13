@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, PhoneOff, X, Loader2 } from "lucide-react";
+import { Mic, PhoneOff, X, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 
 type SessionState =
@@ -24,7 +24,7 @@ interface VoiceRoomProps {
 
 export default function VoiceRoom({ open, onClose }: VoiceRoomProps) {
   const [state, setState] = useState<SessionState>("idle");
-  const [roomName, setRoomName] = useState("");
+  const [, setRoomName] = useState("");
   const [transcript, setTranscript] = useState<Turn[]>([]);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");

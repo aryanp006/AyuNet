@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Mic, MicOff, Phone, PhoneOff, Volume2, Loader2 } from "lucide-react";
+import { Mic, Phone, PhoneOff, Volume2, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 
 type SessionState = "idle" | "connecting" | "greeting" | "listening" | "processing" | "speaking" | "ended";

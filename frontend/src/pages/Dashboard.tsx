@@ -11,8 +11,6 @@ import {
   Sun,
   Moon,
   Mic,
-  Activity,
-  ChevronRight,
 } from "lucide-react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import DiagnoseTab from "../components/DiagnoseTab";
