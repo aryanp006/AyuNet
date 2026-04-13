@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, PhoneOff, X, Loader2 } from "lucide-react";
+import { Mic, MicOff, PhoneOff, X, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 
 type SessionState =
