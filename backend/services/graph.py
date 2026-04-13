@@ -434,3 +434,74 @@ def get_cached_pagerank() -> dict:
 def refresh_pagerank():
     global _pagerank_cache
     _pagerank_cache = run_pagerank()
+
+
+# ─── Register Patient from Diagnosis ───
+
+def register_patient_from_diagnosis(
+    patient_name: str,
+    phone: str,
+    language: str,
+    symptoms: list[str],
+    diagnoses: list[dict],
+) -> dict:
+    """Create or update a Patient node from the Diagnose tab, link symptoms/conditions,
+    and create a pending FollowUp so the patient appears in Follow-ups."""
+    import time
+
+    # Derive a stable patient_id from phone
+    clean_phone = "".join(c for c in phone if c in "+0123456789")
+    patient_id = f"diag_{clean_phone[-10:]}" if clean_phone else f"diag_{int(time.time())}"
+    followup_id = f"fu_{patient_id}_{int(time.time())}"
+    today = __import__("datetime").date.today().isoformat()
+
+    d = get_driver()
+    with d.session() as session:
+        # MERGE Patient
+        session.run("""
+            MERGE (p:Patient {patient_id: $patient_id})
+            SET p.name = $name,
+                p.phone = $phone,
+                p.language = $language,
+                p.registered_date = $today
+        """, patient_id=patient_id, name=patient_name, phone=clean_phone, language=language, today=today)
+
+        # Link symptoms
+        for sym in symptoms:
+            session.run("""
+                MATCH (p:Patient {patient_id: $patient_id})
+                MERGE (s:Symptom {name: $symptom})
+                MERGE (p)-[:PRESENTS_WITH]->(s)
+            """, patient_id=patient_id, symptom=sym)
+
+        # Link top diagnosis as condition
+        top_disease = None
+        if diagnoses:
+            top = diagnoses[0] if isinstance(diagnoses, list) else None
+            if top:
+                top_disease = top.get("disease_name", "")
+                if top_disease:
+                    session.run("""
+                        MATCH (p:Patient {patient_id: $patient_id})
+                        MERGE (d:Disease {name: $disease_name})
+                        MERGE (p)-[:HAS_CONDITION {status: 'active', diagnosed_date: $today}]->(d)
+                    """, patient_id=patient_id, disease_name=top_disease, today=today)
+
+        # Create a pending follow-up for today
+        session.run("""
+            MATCH (p:Patient {patient_id: $patient_id})
+            MERGE (fu:FollowUp {followup_id: $followup_id})
+            SET fu.status = 'pending',
+                fu.scheduled_date = $today
+            MERGE (p)-[:HAS_FOLLOWUP {linked_disease: $condition}]->(fu)
+        """, patient_id=patient_id, followup_id=followup_id, today=today,
+            condition=top_disease or "General")
+
+    return {
+        "patient_id": patient_id,
+        "patient_name": patient_name,
+        "phone": clean_phone,
+        "language": language,
+        "followup_id": followup_id,
+        "condition": top_disease or "General",
+    }

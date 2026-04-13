@@ -70,6 +70,11 @@ async def initiate_call(call_prep: dict) -> str:
     client = get_twilio_client()
     patient_phone = call_prep["phone"]
 
+    # Normalize to E.164: strip spaces, dashes, parens
+    patient_phone = "".join(c for c in patient_phone if c in "+0123456789")
+    if not patient_phone.startswith("+"):
+        patient_phone = "+91" + patient_phone  # default to India
+
     call = client.calls.create(
         to=patient_phone,
         from_=TWILIO_PHONE_NUMBER,
@@ -87,6 +92,11 @@ async def initiate_call(call_prep: dict) -> str:
 
 async def prepare_direct_call(phone_number: str, patient_name: str = "Patient", language: str = "hi", context_notes: str = "") -> dict:
     """Prepare a call to any phone number (not tied to a patient_id in Neo4j)."""
+    # Normalize to E.164
+    phone_number = "".join(c for c in phone_number if c in "+0123456789")
+    if not phone_number.startswith("+"):
+        phone_number = "+91" + phone_number
+
     # Build a minimal patient context for the AI conversation
     context = {
         "patient_name": patient_name,

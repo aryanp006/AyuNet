@@ -10,6 +10,14 @@ from services import livekit_agent
 
 router = APIRouter(prefix="/api/livekit", tags=["livekit"])
 
+# Try to import LiveKit SDK (optional — voice room works without it)
+try:
+    from livekit.api import AccessToken, VideoGrants
+    _HAS_LIVEKIT = True
+except ImportError:
+    _HAS_LIVEKIT = False
+    print("[LiveKit] livekit-api package not installed — token generation disabled, session-only mode active")
+
 
 class TokenRequest(BaseModel):
     room_name: str | None = None
@@ -29,26 +37,10 @@ class RoomRequest(BaseModel):
 
 @router.post("/token")
 async def create_token(req: TokenRequest):
-    """Generate a LiveKit access token for the frontend to join a room."""
-    if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
-        return {"error": "LiveKit credentials not configured"}
-
-    from livekit.api import AccessToken, VideoGrants
-
+    """Generate a LiveKit access token (or session-only fallback) for the frontend."""
     room_name = req.room_name or f"ayunet-{int(time.time())}"
 
-    token = (
-        AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
-        .with_identity(req.participant_name)
-        .with_grants(
-            VideoGrants(
-                room_join=True,
-                room=room_name,
-            )
-        )
-    )
-
-    # Create session for this room
+    # Create session for this room (always works)
     livekit_agent.create_session(
         room_name=room_name,
         patient_context={
@@ -63,9 +55,27 @@ async def create_token(req: TokenRequest):
         },
     )
 
+    # Generate LiveKit token if SDK is available and configured
+    token = None
+    if _HAS_LIVEKIT and LIVEKIT_API_KEY and LIVEKIT_API_SECRET:
+        try:
+            tk = (
+                AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
+                .with_identity(req.participant_name)
+                .with_grants(
+                    VideoGrants(
+                        room_join=True,
+                        room=room_name,
+                    )
+                )
+            )
+            token = tk.to_jwt()
+        except Exception as e:
+            print(f"[LiveKit] Token generation failed: {e}")
+
     return {
-        "token": token.to_jwt(),
-        "url": LIVEKIT_URL,
+        "token": token or "",
+        "url": LIVEKIT_URL or "",
         "room_name": room_name,
     }
 

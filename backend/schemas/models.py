@@ -3,6 +3,9 @@ from pydantic import BaseModel
 
 class AnalyzeRequest(BaseModel):
     text: str
+    patient_name: str = ""
+    phone_number: str = ""
+    language: str = ""
 
 
 class DrugCheckRequest(BaseModel):
@@ -38,3 +41,10 @@ class FollowUpCompleteRequest(BaseModel):
     pain_score: int | None = None
     took_medication: bool | None = None
     new_symptoms: list[str] | None = None
+
+
+class RegisterPatientRequest(BaseModel):
+    patient_name: str
+    phone_number: str
+    language: str = "hi"
+    symptoms_text: str = ""

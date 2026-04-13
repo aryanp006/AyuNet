@@ -1,6 +1,6 @@
 import asyncio
 from fastapi import APIRouter, UploadFile, File, Form
-from schemas.models import AnalyzeRequest, DrugCheckRequest, TreatmentPathRequest, RareDiseaseRequest
+from schemas.models import AnalyzeRequest, DrugCheckRequest, TreatmentPathRequest, RareDiseaseRequest, RegisterPatientRequest
 from services import graph as graph_service
 from services import nlp as nlp_service
 
@@ -26,12 +26,30 @@ async def analyze_symptoms(req: AnalyzeRequest):
     diagnose_result, rare_result = await asyncio.gather(diagnose_task, rare_task)
     pagerank = graph_service.get_cached_pagerank()
 
+    # Auto-register patient if name+phone were provided
+    registered = None
+    if req.patient_name and req.phone_number:
+        try:
+            loop = asyncio.get_event_loop()
+            registered = await loop.run_in_executor(
+                None,
+                graph_service.register_patient_from_diagnosis,
+                req.patient_name,
+                req.phone_number,
+                req.language or language,
+                symptoms,
+                diagnose_result.get("diagnoses", []),
+            )
+        except Exception as e:
+            print(f"[Diagnosis] Patient registration failed (non-critical): {e}")
+
     return {
         "extracted": extracted,
         "diagnoses": diagnose_result,
         "rare_diseases": rare_result,
         "pagerank": pagerank,
         "language": language,
+        "registered_patient": registered,
     }
 
 

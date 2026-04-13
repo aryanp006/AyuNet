@@ -38,19 +38,14 @@ LANGUAGE_MAP = {
 
 
 async def speech_to_text(audio_bytes: bytes, language: str = "hi") -> str:
-    """Transcribe audio using Sarvam saarika:v2 STT."""
+    """Transcribe audio using Sarvam saarika:v2.5 STT (multipart file upload)."""
     client = _get_client()
     lang_code = LANGUAGE_MAP.get(language, "hi-IN")
-    audio_b64 = base64.b64encode(audio_bytes).decode()
 
     resp = await client.post(
         f"{SARVAM_BASE}/speech-to-text",
-        json={
-            "input": audio_b64,
-            "language_code": lang_code,
-            "model": "saarika:v2",
-            "with_timestamps": False,
-        },
+        data={"language_code": lang_code, "model": "saarika:v2.5"},
+        files={"file": ("audio.wav", audio_bytes, "audio/wav")},
     )
     resp.raise_for_status()
     return resp.json().get("transcript", "")
@@ -81,10 +76,10 @@ async def _tts_single(client: httpx.AsyncClient, text: str, lang_code: str) -> b
     resp = await client.post(
         f"{SARVAM_BASE}/text-to-speech",
         json={
-            "input": text,
+            "inputs": [text],
             "target_language_code": lang_code,
-            "model": "bulbul:v1",
-            "speaker": "pavithra",
+            "model": "bulbul:v2",
+            "speaker": "anushka",
             "pitch": 1,
             "pace": 0.9,
             "loudness": 1.3,
@@ -97,7 +92,8 @@ async def _tts_single(client: httpx.AsyncClient, text: str, lang_code: str) -> b
         print(f"[TTS] Input was ({len(text)} chars): {text[:100]}...")
         resp.raise_for_status()
     data = resp.json()
-    audio_b64 = data.get("audio_base64", data.get("audios", [""])[0])
+    audios = data.get("audios", [])
+    audio_b64 = audios[0] if audios else ""
     return base64.b64decode(audio_b64)
 
 

@@ -83,7 +83,10 @@ async def generate_followup_script(patient_context: dict, followup_day: int, lan
             {
                 "role": "system",
                 "content": (
-                    "You are AyuNet's caring health assistant making a follow-up phone call. "
+                    "You are AyuNet's caring FEMALE health assistant making a follow-up phone call. "
+                    "You are a woman. ALWAYS use feminine Hindi grammar when referring to yourself — "
+                    "e.g., 'main kar rahi hoon', 'main dekh rahi hoon', 'main bata rahi hoon', "
+                    "'mujhe khushi hui', NOT 'kar raha hoon' or 'dekh raha hoon'. "
                     f"The patient speaks {language}. Use their language throughout. Be warm, respectful, empathetic. "
                     "You have the patient's full medical context from a graph database. "
                     "\n\nIMPORTANT RULES FOR THE CALL SCRIPT:\n"
@@ -149,7 +152,10 @@ async def generate_greeting(patient_context: dict, language: str) -> str:
             {
                 "role": "system",
                 "content": (
-                    f"You are AyuNet Health Assistant calling a patient for a follow-up. "
+                    f"You are AyuNet Health Assistant (a FEMALE assistant) calling a patient for a follow-up. "
+                    f"You are a woman — ALWAYS use feminine Hindi grammar for yourself: "
+                    f"'main call kar rahi hoon', 'main aapki madad karna chahti hoon', etc. "
+                    f"Never use masculine forms like 'kar raha hoon' or 'chahta hoon'. "
                     f"Generate ONLY the greeting — 3-4 sentences.\n"
                     f"- Start with a warm greeting in HINDI: 'Namaste {patient_name} ji'\n"
                     f"- Introduce yourself as AyuNet Health Assistant\n"
@@ -249,8 +255,12 @@ async def generate_conversational_response(
         )
 
     system_prompt = (
-        f"You are AyuNet Health Assistant — a caring, knowledgeable healthcare professional "
-        f"making a follow-up phone call. You speak {language} throughout the call.\n\n"
+        f"You are AyuNet Health Assistant — a caring, knowledgeable FEMALE healthcare professional "
+        f"making a follow-up phone call. You are a woman. You speak {language} throughout the call.\n"
+        f"CRITICAL: ALWAYS use feminine Hindi grammar when referring to yourself — "
+        f"'main kar rahi hoon', 'main dekh rahi hoon', 'main bata rahi hoon', 'main samajh gayi', "
+        f"'main aapko bata rahi hoon', 'mujhe khushi hui'. "
+        f"NEVER use masculine forms like 'kar raha hoon', 'dekh raha hoon', 'samajh gaya'.\n\n"
         f"═══ PATIENT FILE ═══\n"
         f"  Name: {patient_context.get('patient_name', 'Patient')}\n"
         f"  Age: {patient_context.get('age', 'unknown')}, Gender: {patient_context.get('gender', '')}\n"
