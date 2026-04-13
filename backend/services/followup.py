@@ -1,4 +1,3 @@
-import asyncio
 from datetime import date
 from services import graph as graph_service
 from services import caller as caller_service
@@ -31,38 +30,56 @@ async def check_and_trigger_followups():
         print(f"[FollowUp] Job failed: {e}")
 
 
-async def process_call_response(call_sid: str, turn: int, speech_result: str):
-    """Process patient's verbal response during a call."""
-    from services.nlp import extract_followup_response
-
-    state = caller_service.call_states.get(call_sid)
-    if not state:
+async def broadcast_turn(
+    call_sid: str,
+    turn: int,
+    patient_speech: str,
+    agent_response: str,
+    extracted: dict | None = None,
+    risk_flag: bool = False,
+):
+    """Broadcast a conversation turn to the dashboard via WebSocket."""
+    if not _ws_broadcast:
         return
 
-    # Extract structured data from speech
-    extracted = await extract_followup_response(speech_result)
-    state.setdefault("extracted_data", {}).update(extracted)
+    payload = {
+        "type": "call_transcript",
+        "call_sid": call_sid,
+        "turn": turn,
+        "patient_speech": patient_speech,
+        "agent_response": agent_response,
+    }
 
-    # Check for risk flags
-    risk_flag = False
-    pain_score = extracted.get("pain_score", 0)
+    if extracted:
+        payload["extracted"] = extracted
+
+    if risk_flag:
+        payload["risk_flag"] = True
+
+    await _ws_broadcast(payload)
+
+
+async def save_call_data(call_sid: str, state: dict):
+    """Save accumulated call data to Neo4j when the call ends."""
+    patient_id = state.get("patient_id", "")
+    extracted = state.get("extracted_data", {})
+    risk_flag = state.get("risk_flag", False)
+
+    pain_score = extracted.get("pain_score", 0) or 0
     new_symptoms = extracted.get("new_symptoms", [])
 
-    if pain_score and pain_score > 7:
-        risk_flag = True
+    # If new symptoms were reported, run diagnosis + comorbidity checks
     if new_symptoms:
-        risk_flag = True
+        try:
+            diagnose_result = graph_service.run_diagnose(new_symptoms)
+            risk_result = graph_service.run_comorbidity_risk(patient_id)
+            state["realtime_diagnosis"] = diagnose_result
+            state["realtime_risk"] = risk_result
+            print(f"[FollowUp] Ran diagnosis for new symptoms: {new_symptoms}")
+        except Exception as e:
+            print(f"[FollowUp] Diagnosis query failed: {e}")
 
-    state["risk_flag"] = risk_flag
-
-    # If new symptoms reported in Turn 4, run real-time graph queries
-    if turn == 4 and new_symptoms:
-        diagnose_result = graph_service.run_diagnose(new_symptoms)
-        risk_result = graph_service.run_comorbidity_risk(state["patient_id"])
-        state["realtime_diagnosis"] = diagnose_result
-        state["realtime_risk"] = risk_result
-
-    # Upsert follow-up data back to Neo4j
+    # Upsert follow-up record to Neo4j
     followup_data = {
         "status": "completed",
         "pain_score": pain_score,
@@ -73,34 +90,36 @@ async def process_call_response(call_sid: str, turn: int, speech_result: str):
 
     try:
         graph_service.upsert_followup(
-            state["patient_id"],
-            f"fu_{state['patient_id']}_{date.today().isoformat()}",
+            patient_id,
+            f"fu_{patient_id}_{date.today().isoformat()}",
             followup_data,
         )
+        print(f"[FollowUp] Saved call data for {patient_id}")
     except Exception as e:
         print(f"[FollowUp] Upsert failed: {e}")
 
-    # Broadcast alert via WebSocket if risk flag
+    # Broadcast risk alert via WebSocket if needed
     if risk_flag and _ws_broadcast:
-        alert = {
+        await _ws_broadcast({
             "type": "risk_alert",
-            "patient_id": state["patient_id"],
-            "patient_name": state["patient_name"],
+            "patient_id": patient_id,
+            "patient_name": state.get("patient_name", ""),
             "pain_score": pain_score,
             "new_symptoms": new_symptoms,
             "risk_flag": True,
             "source": "followup_call",
             "call_sid": call_sid,
-        }
-        await _ws_broadcast(alert)
+        })
 
-    # Broadcast turn transcript for live dashboard
+    # Broadcast call summary
     if _ws_broadcast:
         await _ws_broadcast({
-            "type": "call_transcript",
+            "type": "call_completed",
             "call_sid": call_sid,
-            "turn": turn,
-            "patient_speech": speech_result,
-            "extracted": extracted,
+            "patient_id": patient_id,
+            "patient_name": state.get("patient_name", ""),
+            "turns": state.get("turn_count", 0),
             "risk_flag": risk_flag,
+            "extracted_data": extracted,
+            "conversation_history": state.get("conversation_history", []),
         })

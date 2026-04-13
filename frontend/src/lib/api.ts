@@ -69,6 +69,9 @@ export const api = {
       body: JSON.stringify({ patient_id: patientId }),
     }),
 
+  endCall: (callSid: string) =>
+    request<any>(`/api/calls/end/${callSid}`, { method: "POST" }),
+
   demoTrigger: () =>
     request<any>("/api/calls/demo-trigger", { method: "POST" }),
 

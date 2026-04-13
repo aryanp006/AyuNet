@@ -1,7 +1,13 @@
-import asyncio
+import sys
+import io
 import base64
 from twilio.rest import Client
 from twilio.twiml.voice_response import VoiceResponse, Gather
+
+# Fix Windows console encoding for Indic scripts
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 from config import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, BASE_URL
 from services import graph as graph_service
 from services import nlp as nlp_service
@@ -13,8 +19,7 @@ twilio_client: Client | None = None
 # In-memory call state: call_sid -> CallState
 call_states: dict[str, dict] = {}
 
-# Pre-generated filler audio per language
-filler_cache: dict[str, dict[str, bytes]] = {}
+MAX_TURNS = 14
 
 
 def get_twilio_client() -> Client:
@@ -25,56 +30,43 @@ def get_twilio_client() -> Client:
 
 
 async def prepare_call(patient_id: str) -> dict:
-    """Pre-generate the entire call script + audio BEFORE dialing.
-    Returns call prep data with all turns ready.
-    """
+    """Prepare a call: fetch patient context and generate the opening greeting."""
     # 1. Get full patient context from Neo4j
     context = graph_service.run_patient_context(patient_id)
 
     patient_name = context.get("patient_name", "Patient")
     language = context.get("language", "hi")
-    followup_day = context.get("followup_day", 1)
 
-    # 2. Generate all 5 turns via Groq
-    script = await nlp_service.generate_followup_script(context, followup_day, language)
+    # 2. Generate only the opening greeting
+    greeting_text = await nlp_service.generate_greeting(context, language)
 
-    # 3. Convert ALL turn scripts to audio in parallel
-    tts_tasks = []
-    turn_keys = ["turn_1", "turn_2", "turn_3", "turn_4", "turn_5_safe", "turn_5_alert"]
-    for key in turn_keys:
-        if key in script:
-            text = script[key]["script"]
-            tts_tasks.append(voice_service.text_to_speech(text, language))
-
-    audio_results = await asyncio.gather(*tts_tasks, return_exceptions=True)
-
+    # 3. TTS the greeting
     audio_map = {}
-    for key, audio in zip(turn_keys, audio_results):
-        if isinstance(audio, Exception):
-            print(f"[TTS] FAILED for {key}: {audio}")
-        elif isinstance(audio, bytes) and len(audio) > 0:
-            audio_map[key] = base64.b64encode(audio).decode()
-        else:
-            print(f"[TTS] Empty audio for {key}")
-
-    if not audio_map:
-        print(f"[TTS] WARNING: No audio generated for any turn! Script will use Twilio <Say> fallback.")
+    try:
+        greeting_audio = await voice_service.text_to_speech(greeting_text, language)
+        if greeting_audio and len(greeting_audio) > 0:
+            audio_map["greeting"] = base64.b64encode(greeting_audio).decode()
+    except Exception as e:
+        print(f"[TTS] Greeting TTS failed: {e}")
 
     call_prep = {
         "patient_id": patient_id,
         "patient_name": patient_name,
         "language": language,
         "phone": context.get("phone", ""),
-        "script": script,
+        "context": context,
+        "greeting_text": greeting_text,
         "audio": audio_map,
-        "current_turn": 0,
+        "conversation_history": [],
+        "turn_count": 0,
         "extracted_data": {},
+        "risk_flag": False,
     }
     return call_prep
 
 
 async def initiate_call(call_prep: dict) -> str:
-    """Initiate the Twilio call with pre-generated Turn 1 audio ready."""
+    """Initiate the Twilio call."""
     client = get_twilio_client()
     patient_phone = call_prep["phone"]
 
@@ -88,77 +80,194 @@ async def initiate_call(call_prep: dict) -> str:
 
     call_sid = call.sid
     call_prep["call_sid"] = call_sid
-    call_prep["current_turn"] = 1
     call_states[call_sid] = call_prep
 
     return call_sid
 
 
-def build_turn_twiml(call_sid: str, turn_num: int) -> str:
-    """Build TwiML response for a specific turn using pre-generated audio."""
+def build_greeting_twiml(call_sid: str) -> str:
+    """Build TwiML for the opening greeting + first Gather."""
     state = call_states.get(call_sid, {})
-    language = state.get("language", "hi")
-
-    # For turn 5, pick safe or alert variant based on risk_flag
-    if turn_num == 5:
-        turn_key = "turn_5_alert" if state.get("risk_flag") else "turn_5_safe"
-    else:
-        turn_key = f"turn_{turn_num}"
-
-    audio_b64 = state.get("audio", {}).get(turn_key)
 
     response = VoiceResponse()
 
+    # Play greeting audio or fall back to Twilio TTS
+    audio_b64 = state.get("audio", {}).get("greeting")
     if audio_b64:
-        # Play pre-generated audio
-        response.play(f"{BASE_URL}/api/calls/audio/{call_sid}/{turn_key}")
+        response.play(f"{BASE_URL}/api/calls/audio/{call_sid}/greeting")
     else:
-        # Fallback: use Twilio's built-in TTS if Sarvam audio is missing
-        script_text = state.get("script", {}).get(turn_key, {}).get("script", "")
-        if script_text:
-            twilio_lang = LANGUAGE_MAP.get(language, "hi-IN")
-            response.say(script_text, language=twilio_lang)
-            print(f"[TwiML] Using <Say> fallback for {turn_key}")
-        else:
-            print(f"[TwiML] WARNING: No audio AND no script for {turn_key}")
+        greeting_text = state.get("greeting_text", "")
+        if greeting_text:
+            response.say(greeting_text, language="hi-IN")
 
-    if turn_num < 5:
-        # Map language to Twilio speech recognition locale
-        twilio_lang = LANGUAGE_MAP.get(language, "hi-IN")
-        # Gather patient response
+    # Add the greeting to conversation history
+    greeting_text = state.get("greeting_text", "")
+    if greeting_text:
+        state.setdefault("conversation_history", []).append(
+            {"role": "assistant", "content": greeting_text}
+        )
+
+    # First Gather uses hi-IN since greeting asks language in Hindi
+    # Language will be updated after patient responds with preference
+    gather = Gather(
+        input="speech",
+        action=f"{BASE_URL}/api/calls/webhook/{call_sid}/respond",
+        language="hi-IN",
+        speech_timeout="auto",
+        timeout=15,
+    )
+    response.append(gather)
+
+    # If no speech detected, prompt once more then hang up
+    response.say(
+        "I didn't hear anything. I'll call back later. Take care!",
+        language="hi-IN",
+    )
+    response.hangup()
+
+    return str(response)
+
+
+async def handle_patient_response(call_sid: str, speech_text: str) -> str:
+    """Core dynamic handler: process patient speech, generate AI response, return TwiML."""
+    state = call_states.get(call_sid)
+    if not state:
+        response = VoiceResponse()
+        response.say("Sorry, an error occurred. Goodbye.")
+        response.hangup()
+        return str(response)
+
+    language = state.get("language", "hi")
+    twilio_lang = LANGUAGE_MAP.get(language, "hi-IN")
+    state["turn_count"] = state.get("turn_count", 0) + 1
+
+    # Handle empty input (Gather timeout with no speech)
+    if not speech_text or not speech_text.strip():
+        response = VoiceResponse()
+        response.say(
+            "I didn't catch that. Could you please say that again?",
+            language=twilio_lang,
+        )
         gather = Gather(
             input="speech",
-            action=f"{BASE_URL}/api/calls/webhook/{call_sid}/{turn_num + 1}",
+            action=f"{BASE_URL}/api/calls/webhook/{call_sid}/respond",
+            language=twilio_lang,
+            speech_timeout="auto",
+            timeout=15,
+        )
+        response.append(gather)
+        response.say("I'll call back later. Take care!", language=twilio_lang)
+        response.hangup()
+        # Don't count empty input as a turn
+        state["turn_count"] -= 1
+        return str(response)
+
+    # Add patient message to conversation history
+    state["conversation_history"].append({"role": "patient", "content": speech_text})
+
+    # On first response, detect language preference and switch
+    if state["turn_count"] == 1:
+        try:
+            detected_lang = await nlp_service.detect_language_preference(speech_text)
+            state["language"] = detected_lang
+            language = detected_lang
+            twilio_lang = LANGUAGE_MAP.get(language, "hi-IN")
+            print(f"[Lang] Detected language preference: {detected_lang} -> {twilio_lang}")
+        except Exception as e:
+            print(f"[Lang] Detection failed, keeping {language}: {e}")
+
+    # Check if we need to force-end the conversation
+    force_end = state["turn_count"] >= MAX_TURNS
+
+    # Generate dynamic AI response
+    try:
+        result = await nlp_service.generate_conversational_response(
+            patient_context=state["context"],
+            conversation_history=state["conversation_history"],
+            patient_message=speech_text,
+            language=language,
+            turn_count=state["turn_count"],
+            force_end=force_end,
+        )
+    except Exception as e:
+        print(f"[NLP] Conversational response failed: {e}")
+        # Graceful fallback — end the call
+        response = VoiceResponse()
+        response.say(
+            "Thank you for speaking with me. Please take your medications on time. Take care!",
+            language=twilio_lang,
+        )
+        response.hangup()
+        return str(response)
+
+    agent_text = result.get("response", "")
+    should_continue = result.get("should_continue", True) and not force_end
+    risk_flag = result.get("risk_flag", False)
+    extracted = result.get("extracted_data", {})
+
+    # Update conversation history with agent response
+    state["conversation_history"].append({"role": "assistant", "content": agent_text})
+
+    # Update risk flag (sticky — once flagged, stays flagged)
+    state["risk_flag"] = state.get("risk_flag", False) or risk_flag
+
+    # Merge extracted data incrementally
+    for key, val in extracted.items():
+        if val is not None:
+            if key == "new_symptoms" and isinstance(val, list) and val:
+                existing = state["extracted_data"].get("new_symptoms", [])
+                state["extracted_data"]["new_symptoms"] = list(set(existing + val))
+            elif key != "new_symptoms":
+                state["extracted_data"][key] = val
+
+    # TTS the agent response
+    turn_key = f"dynamic_{state['turn_count']}"
+    try:
+        audio = await voice_service.text_to_speech(agent_text, language)
+        if audio and len(audio) > 0:
+            state.setdefault("audio", {})[turn_key] = base64.b64encode(audio).decode()
+            print(f"[TTS] Generated audio for turn {state['turn_count']}")
+    except Exception as e:
+        print(f"[TTS] Dynamic TTS failed for turn {state['turn_count']}: {e}")
+
+    # Build TwiML response
+    response = VoiceResponse()
+
+    # Play agent's response
+    audio_b64 = state.get("audio", {}).get(turn_key)
+    if audio_b64:
+        response.play(f"{BASE_URL}/api/calls/audio/{call_sid}/{turn_key}")
+    else:
+        response.say(agent_text, language=twilio_lang)
+        print(f"[TwiML] Using <Say> fallback for turn {state['turn_count']}")
+
+    if should_continue:
+        # Gather next patient response
+        gather = Gather(
+            input="speech",
+            action=f"{BASE_URL}/api/calls/webhook/{call_sid}/respond",
+            language=twilio_lang,
+            speech_timeout="auto",
+            timeout=15,
+        )
+        response.append(gather)
+        # Timeout fallback
+        response.say("Are you still there?", language=twilio_lang)
+        gather2 = Gather(
+            input="speech",
+            action=f"{BASE_URL}/api/calls/webhook/{call_sid}/respond",
             language=twilio_lang,
             speech_timeout="auto",
             timeout=10,
         )
-        response.append(gather)
+        response.append(gather2)
+        response.say("I'll call back later. Take care!", language=twilio_lang)
+        response.hangup()
     else:
         response.hangup()
 
+    print(
+        f"[Call] {call_sid} turn={state['turn_count']} "
+        f"continue={should_continue} risk={state['risk_flag']}"
+    )
     return str(response)
-
-
-def get_filler_twiml(call_sid: str, next_action_url: str) -> str:
-    """Return TwiML that plays a filler while processing."""
-    state = call_states.get(call_sid, {})
-    language = state.get("language", "hi")
-
-    response = VoiceResponse()
-    response.play(f"{BASE_URL}/api/calls/audio/{call_sid}/filler_0")
-    response.pause(length=1)
-    response.redirect(next_action_url)
-    return str(response)
-
-
-async def pre_generate_fillers():
-    """Pre-generate filler audio for all supported languages on startup."""
-    global filler_cache
-    languages = ["hi", "ta", "te", "bn", "kn", "mr", "en"]
-    for lang in languages:
-        try:
-            filler_cache[lang] = await voice_service.generate_filler_audio(lang)
-            print(f"[Filler] Generated fillers for {lang}")
-        except Exception as e:
-            print(f"[Filler] Failed for {lang}: {e}")

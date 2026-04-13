@@ -1,6 +1,13 @@
+import sys
+import io
 import base64
 import httpx
 from config import SARVAM_API_KEY
+
+# Fix Windows console encoding for Indic scripts
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 SARVAM_BASE = "https://api.sarvam.ai"
 
@@ -54,6 +61,23 @@ async def text_to_speech(text: str, language: str = "hi") -> bytes:
     client = _get_client()
     lang_code = LANGUAGE_MAP.get(language, "hi-IN")
 
+    # Sarvam bulbul:v1 has a ~500 char limit per request
+    # If text is longer, split into chunks and concatenate audio
+    max_chars = 480
+    if len(text) <= max_chars:
+        return await _tts_single(client, text, lang_code)
+
+    # Split on sentence boundaries
+    chunks = _split_text(text, max_chars)
+    audio_parts = []
+    for chunk in chunks:
+        part = await _tts_single(client, chunk, lang_code)
+        audio_parts.append(part)
+    return b"".join(audio_parts)
+
+
+async def _tts_single(client: httpx.AsyncClient, text: str, lang_code: str) -> bytes:
+    """Single TTS request to Sarvam API."""
     resp = await client.post(
         f"{SARVAM_BASE}/text-to-speech",
         json={
@@ -67,10 +91,52 @@ async def text_to_speech(text: str, language: str = "hi") -> bytes:
             "enable_preprocessing": True,
         },
     )
-    resp.raise_for_status()
+    if resp.status_code != 200:
+        body = resp.text[:300]
+        print(f"[TTS] Sarvam error {resp.status_code}: {body}")
+        print(f"[TTS] Input was ({len(text)} chars): {text[:100]}...")
+        resp.raise_for_status()
     data = resp.json()
     audio_b64 = data.get("audio_base64", data.get("audios", [""])[0])
     return base64.b64decode(audio_b64)
+
+
+def _split_text(text: str, max_chars: int) -> list[str]:
+    """Split text into chunks on sentence boundaries."""
+    sentences = []
+    for sep in ["। ", ". ", "! ", "? ", "।", ".\n"]:
+        if sep in text:
+            parts = text.split(sep)
+            sentences = [p.strip() + sep.strip() for p in parts if p.strip()]
+            break
+    if not sentences:
+        # No sentence boundaries found, split on spaces
+        words = text.split()
+        sentences = []
+        current = ""
+        for word in words:
+            if len(current) + len(word) + 1 > max_chars:
+                sentences.append(current.strip())
+                current = word
+            else:
+                current += " " + word
+        if current.strip():
+            sentences.append(current.strip())
+        return sentences
+
+    # Merge short sentences into chunks under max_chars
+    chunks = []
+    current = ""
+    for s in sentences:
+        if len(current) + len(s) + 1 > max_chars:
+            if current.strip():
+                chunks.append(current.strip())
+            current = s
+        else:
+            current += " " + s
+    if current.strip():
+        chunks.append(current.strip())
+    return chunks
 
 
 async def generate_filler_audio(language: str = "hi") -> dict[str, bytes]:

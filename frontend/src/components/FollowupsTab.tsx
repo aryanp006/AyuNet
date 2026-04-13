@@ -12,6 +12,7 @@ export default function FollowupsTab({ alerts }: Props) {
   const [loading, setLoading] = useState(true);
   const [callingId, setCallingId] = useState<string | null>(null);
   const [callStatus, setCallStatus] = useState<Record<string, string>>({});
+  const [callSids, setCallSids] = useState<Record<string, string>>({});
   const [transcripts, setTranscripts] = useState<Alert[]>([]);
 
   useEffect(() => {
@@ -71,7 +72,10 @@ export default function FollowupsTab({ alerts }: Props) {
     setCallStatus((prev) => ({ ...prev, [patientId]: "preparing" }));
 
     try {
-      await api.initiateCall(patientId);
+      const data = await api.initiateCall(patientId);
+      if (data.call_sid) {
+        setCallSids((prev) => ({ ...prev, [patientId]: data.call_sid }));
+      }
       setCallStatus((prev) => ({
         ...prev,
         [patientId]: "ringing",
@@ -85,7 +89,21 @@ export default function FollowupsTab({ alerts }: Props) {
     } catch (err) {
       console.error(err);
       setCallStatus((prev) => ({ ...prev, [patientId]: "failed" }));
+      setCallingId(null);
     }
+  }
+
+  async function handleEndCall(patientId: string) {
+    const callSid = callSids[patientId];
+    if (!callSid) return;
+
+    try {
+      await api.endCall(callSid);
+    } catch (err) {
+      console.error("Failed to end call:", err);
+    }
+    setCallStatus((prev) => ({ ...prev, [patientId]: "completed" }));
+    setCallingId(null);
   }
 
   async function handleDemoTrigger() {
@@ -93,13 +111,25 @@ export default function FollowupsTab({ alerts }: Props) {
     try {
       const data = await api.demoTrigger();
       if (data.patient) {
+        const pid = data.patient.patient_id;
+        if (data.call_sid) {
+          setCallSids((prev) => ({ ...prev, [pid]: data.call_sid }));
+        }
         setCallStatus((prev) => ({
           ...prev,
-          [data.patient.patient_id]: "ringing",
+          [pid]: "ringing",
         }));
+        setCallingId(pid);
+        setTimeout(() => {
+          setCallStatus((prev) => ({
+            ...prev,
+            [pid]: "in-progress",
+          }));
+        }, 3000);
       }
     } catch (err) {
       console.error(err);
+      setCallingId(null);
     }
   }
 
@@ -182,8 +212,19 @@ export default function FollowupsTab({ alerts }: Props) {
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleCall(fu.patient_id)}
-                      disabled={!!callingId && callingId !== fu.patient_id}
+                      onClick={() =>
+                        status === "in-progress"
+                          ? handleEndCall(fu.patient_id)
+                          : handleCall(fu.patient_id)
+                      }
+                      disabled={
+                        status === "preparing" ||
+                        status === "ringing" ||
+                        status === "completed" ||
+                        (!!callingId &&
+                          callingId !== fu.patient_id &&
+                          status !== "in-progress")
+                      }
                       className={`flex-1 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
                         status === "in-progress"
                           ? "bg-red-600 hover:bg-red-500 text-white"

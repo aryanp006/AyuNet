@@ -370,7 +370,7 @@ def run_due_followups() -> dict:
         result = session.run("""
             MATCH (p:Patient)-[hf:HAS_FOLLOWUP]->(fu:FollowUp)
             WHERE fu.status = 'pending'
-              AND fu.scheduled_date <= date().toString()
+              AND fu.scheduled_date <= toString(date())
             OPTIONAL MATCH (p)-[:HAS_CONDITION]->(d:Disease)
             RETURN p.patient_id AS patient_id,
                    p.name AS patient_name,

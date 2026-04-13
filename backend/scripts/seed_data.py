@@ -541,6 +541,10 @@ def main():
             ("dengue", "proto_acute"), ("malaria", "proto_acute"),
             ("typhoid", "proto_acute"), ("diabetes_t2", "proto_chronic"),
             ("hypertension", "proto_chronic"), ("cad", "proto_surgery"),
+            ("asthma", "proto_chronic"), ("ckd", "proto_chronic"),
+            ("rheumatoid", "proto_chronic"), ("hypothyroid", "proto_chronic"),
+            ("depression", "proto_chronic"), ("lupus", "proto_chronic"),
+            ("gastritis", "proto_acute"), ("chikungunya", "proto_acute"),
         ]
         for did, pid in disease_protocols:
             session.run(
@@ -550,15 +554,21 @@ def main():
             )
         print(f"  -> {len(disease_protocols)} disease-protocol edges")
 
-        # ─── PATIENTS (6) ───
+        # ─── PATIENTS (10) ───
         print("[Seed] Upserting patients...")
+        # All phones set to demo number for testing
+        DEMO_PHONE = "+917985582272"
         patients = [
-            ("priya", "Priya", "+919876543210", "hi", 32, "female"),
-            ("karthik", "Karthik", "+919876543211", "ta", 45, "male"),
-            ("ananya", "Ananya", "+919876543212", "te", 28, "female"),
-            ("rahul", "Rahul", "+919876543213", "en", 55, "male"),
-            ("meera", "Meera", "+919876543214", "bn", 35, "female"),
-            ("aryan", "Aryan", "+917985582272", "hi", 21, "male"),
+            ("priya", "Priya", DEMO_PHONE, "hi", 32, "female"),
+            ("karthik", "Karthik", DEMO_PHONE, "ta", 45, "male"),
+            ("ananya", "Ananya", DEMO_PHONE, "te", 28, "female"),
+            ("rahul", "Rahul", DEMO_PHONE, "en", 55, "male"),
+            ("meera", "Meera", DEMO_PHONE, "bn", 35, "female"),
+            ("aryan", "Aryan", DEMO_PHONE, "hi", 21, "male"),
+            ("suresh", "Suresh", DEMO_PHONE, "hi", 62, "male"),
+            ("lakshmi", "Lakshmi", DEMO_PHONE, "ta", 48, "female"),
+            ("dev", "Dev", DEMO_PHONE, "en", 38, "male"),
+            ("fatima", "Fatima", DEMO_PHONE, "hi", 29, "female"),
         ]
         for pid, name, phone, lang, age, gender in patients:
             session.run(
@@ -575,11 +585,27 @@ def main():
             ("priya", "diabetes_t2", "2023-01-15", "chronic"),
             ("karthik", "cad", "2024-02-20", "post-surgery"),
             ("karthik", "hypertension", "2022-06-01", "chronic"),
-            ("ananya", "lupus", "2024-03-01", "suspected"),
+            ("ananya", "lupus", "2024-03-01", "active"),
+            ("ananya", "anemia", "2024-02-15", "active"),
             ("rahul", "hypertension", "2020-01-01", "chronic"),
             ("rahul", "diabetes_t2", "2021-06-15", "chronic"),
             ("rahul", "cad", "2023-09-01", "chronic"),
+            ("meera", "hypothyroid", "2023-03-10", "chronic"),
+            ("meera", "depression", "2023-08-01", "active"),
+            ("meera", "anemia", "2023-09-15", "active"),
             ("aryan", "dengue", TODAY, "active"),
+            # Suresh: 62M, Diabetes + CKD + Hypertension — complex chronic
+            ("suresh", "diabetes_t2", "2018-05-01", "chronic"),
+            ("suresh", "ckd", "2022-11-15", "chronic"),
+            ("suresh", "hypertension", "2019-02-01", "chronic"),
+            # Lakshmi: 48F, Asthma + Gastritis — respiratory + GI
+            ("lakshmi", "asthma", "2020-06-01", "chronic"),
+            ("lakshmi", "gastritis", "2024-01-20", "active"),
+            # Dev: 38M, Typhoid — acute recovery
+            ("dev", "typhoid", TODAY, "active"),
+            # Fatima: 29F, Rheumatoid Arthritis + Migraine
+            ("fatima", "rheumatoid", "2023-07-01", "active"),
+            ("fatima", "migraine", "2022-01-15", "chronic"),
         ]
         for pid, did, diag_date, status in patient_conditions:
             session.run(
@@ -592,16 +618,44 @@ def main():
         # ─── PATIENT → DRUG (TAKES_MEDICATION) ───
         print("[Seed] Creating patient-medication edges...")
         patient_meds = [
-            ("priya", "paracetamol", "500mg 3x/day", "2024-03-10"),
-            ("priya", "metformin", "500mg 2x/day", "2023-01-15"),
-            ("karthik", "clopidogrel", "75mg 1x/day", "2024-02-20"),
-            ("karthik", "aspirin", "75mg 1x/day", "2024-02-20"),
-            ("karthik", "atenolol", "50mg 1x/day", "2022-06-01"),
-            ("rahul", "metformin", "1000mg 2x/day", "2021-06-15"),
-            ("rahul", "amlodipine", "5mg 1x/day", "2020-01-01"),
-            ("rahul", "simvastatin", "20mg 1x/day", "2023-09-01"),
-            ("rahul", "aspirin", "75mg 1x/day", "2023-09-01"),
+            # Priya — Dengue + Diabetes
+            ("priya", "paracetamol", "500mg 3x/day (after meals)", "2024-03-10"),
+            ("priya", "metformin", "500mg 2x/day (morning & night)", "2023-01-15"),
+            # Karthik — CAD post-surgery + Hypertension
+            ("karthik", "clopidogrel", "75mg 1x/day (morning)", "2024-02-20"),
+            ("karthik", "aspirin", "75mg 1x/day (after lunch)", "2024-02-20"),
+            ("karthik", "atenolol", "50mg 1x/day (morning)", "2022-06-01"),
+            ("karthik", "simvastatin", "20mg 1x/day (night)", "2024-02-20"),
+            # Ananya — Lupus + Anemia
+            ("ananya", "hydroxychloroquine", "200mg 2x/day (morning & night)", "2024-03-01"),
+            ("ananya", "prednisolone", "10mg 1x/day (morning after breakfast)", "2024-03-01"),
+            # Rahul — Hypertension + Diabetes + CAD
+            ("rahul", "metformin", "1000mg 2x/day (morning & night)", "2021-06-15"),
+            ("rahul", "amlodipine", "5mg 1x/day (morning)", "2020-01-01"),
+            ("rahul", "simvastatin", "20mg 1x/day (night)", "2023-09-01"),
+            ("rahul", "aspirin", "75mg 1x/day (after lunch)", "2023-09-01"),
+            # Meera — Hypothyroid + Depression + Anemia
+            ("meera", "levothyroxine", "50mcg 1x/day (empty stomach, 30 min before breakfast)", "2023-03-10"),
+            ("meera", "sertraline", "50mg 1x/day (night)", "2023-08-01"),
+            # Aryan — Dengue
             ("aryan", "paracetamol", "500mg 3x/day (after meals)", TODAY),
+            # Suresh — Diabetes + CKD + Hypertension
+            ("suresh", "metformin", "500mg 2x/day (morning & night)", "2018-05-01"),
+            ("suresh", "insulin_glargine", "20 units at bedtime", "2022-11-15"),
+            ("suresh", "amlodipine", "5mg 1x/day (morning)", "2019-02-01"),
+            ("suresh", "losartan", "50mg 1x/day (night)", "2022-11-15"),
+            # Lakshmi — Asthma + Gastritis
+            ("lakshmi", "salbutamol", "2 puffs as needed (max 4x/day)", "2020-06-01"),
+            ("lakshmi", "omeprazole", "20mg 1x/day (before breakfast)", "2024-01-20"),
+            # Dev — Typhoid
+            ("dev", "azithromycin", "500mg 1x/day (morning)", TODAY),
+            ("dev", "paracetamol", "500mg 3x/day (after meals, for fever)", TODAY),
+            ("dev", "omeprazole", "20mg 1x/day (before breakfast)", TODAY),
+            # Fatima — Rheumatoid Arthritis + Migraine
+            ("fatima", "methotrexate", "15mg 1x/week (every Saturday)", "2023-07-01"),
+            ("fatima", "hydroxychloroquine", "200mg 2x/day (morning & night)", "2023-07-01"),
+            ("fatima", "diclofenac", "50mg 2x/day (after meals, for flare-ups)", "2023-07-01"),
+            ("fatima", "paracetamol", "500mg as needed (for migraine)", "2022-01-15"),
         ]
         for pid, did, dosage, start in patient_meds:
             session.run(
@@ -614,13 +668,40 @@ def main():
         # ─── PATIENT → LAB TESTS COMPLETED ───
         print("[Seed] Creating patient-labtest edges...")
         patient_tests = [
-            ("priya", "lt_cbc", "2024-03-10", "low platelet count"),
-            ("priya", "lt_fbs", "2024-01-05", "140 mg/dL"),
-            ("rahul", "lt_ecg", "2023-09-01", "ST changes"),
-            ("rahul", "lt_lipid", "2023-09-01", "LDL 180"),
-            ("rahul", "lt_hba1c", "2024-01-10", "7.2%"),
-            ("karthik", "lt_ecg", "2024-02-20", "normal post-op"),
+            # Priya
+            ("priya", "lt_cbc", "2024-03-10", "low platelet count: 90,000/μL"),
+            ("priya", "lt_fbs", "2024-01-05", "140 mg/dL (elevated)"),
+            ("priya", "lt_hba1c", "2024-01-05", "6.8% (pre-diabetic range)"),
+            # Karthik
+            ("karthik", "lt_ecg", "2024-02-20", "normal sinus rhythm post-op"),
+            ("karthik", "lt_echo", "2024-02-20", "EF 55%, mild LVH"),
+            ("karthik", "lt_lipid", "2024-02-20", "LDL 145, HDL 38, Triglycerides 190"),
+            # Ananya
+            ("ananya", "lt_cbc", "2024-03-01", "Hb 9.2 g/dL (low), WBC 3,800/μL"),
+            ("ananya", "lt_rf", "2024-03-01", "Negative"),
+            # Rahul
+            ("rahul", "lt_ecg", "2023-09-01", "ST depression in V4-V6"),
+            ("rahul", "lt_lipid", "2023-09-01", "LDL 180, HDL 35"),
+            ("rahul", "lt_hba1c", "2024-01-10", "7.2% (needs improvement)"),
+            ("rahul", "lt_creatinine", "2024-01-10", "1.1 mg/dL (normal)"),
+            # Meera
+            ("meera", "lt_thyroid", "2023-03-10", "TSH 8.5 mIU/L (elevated), T4 low"),
+            ("meera", "lt_cbc", "2023-09-15", "Hb 10.1 g/dL (mild anemia)"),
+            # Aryan
             ("aryan", "lt_cbc", TODAY, "Platelet count: 85,000/μL (low), WBC: 3,200/μL (low)"),
+            # Suresh
+            ("suresh", "lt_hba1c", "2024-02-01", "8.1% (poorly controlled)"),
+            ("suresh", "lt_creatinine", "2024-02-01", "2.8 mg/dL (elevated — Stage 3 CKD)"),
+            ("suresh", "lt_fbs", "2024-02-01", "185 mg/dL (high)"),
+            ("suresh", "lt_ecg", "2024-02-01", "LVH pattern"),
+            # Lakshmi
+            ("lakshmi", "lt_xray", "2024-01-20", "Hyperinflated lungs, no consolidation"),
+            # Dev
+            ("dev", "lt_cbc", TODAY, "WBC 12,500/μL (elevated), Hb 13.2 g/dL"),
+            # Fatima
+            ("fatima", "lt_rf", "2023-07-01", "Positive (68 IU/mL)"),
+            ("fatima", "lt_cbc", "2023-07-01", "ESR 42 mm/hr (elevated)"),
+            ("fatima", "lt_lft", "2024-01-15", "ALT 35, AST 30 (normal — monitoring for methotrexate)"),
         ]
         for pid, tid, test_date, result_val in patient_tests:
             session.run(
@@ -630,12 +711,37 @@ def main():
             )
         print(f"  -> {len(patient_tests)} patient-labtest edges")
 
-        # ─── PATIENT → SYMPTOM (PRESENTS_WITH) — for Aryan demo ───
+        # ─── PATIENT → SYMPTOM (PRESENTS_WITH) ───
         print("[Seed] Creating patient-symptom edges...")
         patient_symptoms = [
+            # Aryan — Dengue
             ("aryan", "fever"), ("aryan", "headache"), ("aryan", "body_aches"),
             ("aryan", "nausea"), ("aryan", "fatigue"), ("aryan", "chills"),
             ("aryan", "joint_pain"), ("aryan", "loss_of_appetite"),
+            # Priya — Dengue + Diabetes
+            ("priya", "fever"), ("priya", "headache"), ("priya", "fatigue"),
+            ("priya", "body_aches"), ("priya", "rash"), ("priya", "frequent_urination"),
+            # Ananya — Lupus + Anemia
+            ("ananya", "rash"), ("ananya", "joint_pain"), ("ananya", "fatigue"),
+            ("ananya", "hair_loss"), ("ananya", "fever"), ("ananya", "muscle_weakness"),
+            ("ananya", "dizziness"),
+            # Meera — Hypothyroid + Depression + Anemia
+            ("meera", "fatigue"), ("meera", "weight_gain"), ("meera", "hair_loss"),
+            ("meera", "depression_symptom"), ("meera", "insomnia"), ("meera", "dry_mouth"),
+            ("meera", "loss_of_appetite"), ("meera", "dizziness"),
+            # Suresh — Diabetes + CKD + Hypertension
+            ("suresh", "fatigue"), ("suresh", "swelling_legs"), ("suresh", "frequent_urination"),
+            ("suresh", "nausea"), ("suresh", "loss_of_appetite"), ("suresh", "muscle_weakness"),
+            ("suresh", "blurred_vision"), ("suresh", "numbness"),
+            # Lakshmi — Asthma + Gastritis
+            ("lakshmi", "wheezing"), ("lakshmi", "shortness_of_breath"), ("lakshmi", "cough"),
+            ("lakshmi", "abdominal_pain"), ("lakshmi", "nausea"), ("lakshmi", "loss_of_appetite"),
+            # Dev — Typhoid
+            ("dev", "fever"), ("dev", "headache"), ("dev", "abdominal_pain"),
+            ("dev", "diarrhea"), ("dev", "loss_of_appetite"), ("dev", "fatigue"),
+            # Fatima — RA + Migraine
+            ("fatima", "joint_pain"), ("fatima", "fatigue"), ("fatima", "muscle_weakness"),
+            ("fatima", "headache"), ("fatima", "nausea"), ("fatima", "blurred_vision"),
         ]
         for pid, sid in patient_symptoms:
             session.run(
@@ -651,6 +757,13 @@ def main():
             ("fu_aryan_today", "pending", TODAY, "aryan", "Dengue Fever"),
             ("fu_karthik_today", "pending", TODAY, "karthik", "Coronary Artery Disease"),
             ("fu_priya_today", "pending", TODAY, "priya", "Dengue Fever"),
+            ("fu_ananya_today", "pending", TODAY, "ananya", "Systemic Lupus Erythematosus"),
+            ("fu_meera_today", "pending", TODAY, "meera", "Hypothyroidism"),
+            ("fu_rahul_today", "pending", TODAY, "rahul", "Type 2 Diabetes"),
+            ("fu_suresh_today", "pending", TODAY, "suresh", "Chronic Kidney Disease"),
+            ("fu_lakshmi_today", "pending", TODAY, "lakshmi", "Asthma"),
+            ("fu_dev_today", "pending", TODAY, "dev", "Typhoid Fever"),
+            ("fu_fatima_today", "pending", TODAY, "fatima", "Rheumatoid Arthritis"),
         ]
         for fid, status, sched_date, pid, linked_disease in followups:
             session.run(
