@@ -10,3 +10,5 @@ httpx
 twilio
 apscheduler
 python-multipart
+livekit
+livekit-api

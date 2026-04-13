@@ -58,7 +58,7 @@ export default function RiskAnalysisTab() {
                 onClick={() => setSelected(p.id)}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-all text-sm ${
                   selected === p.id
-                    ? "bg-yellow-100 dark:bg-yellow-500/20 border border-yellow-500"
+                    ? "bg-yellow-50 dark:bg-yellow-500/20 border border-yellow-400 dark:border-yellow-500"
                     : "bg-slate-50 dark:bg-slate-800 border border-transparent hover:border-yellow-500/50"
                 }`}
               >

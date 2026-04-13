@@ -12,7 +12,9 @@
 - [Graph Data Model](#graph-data-model)
 - [Core Graph Queries (Q1–Q8)](#core-graph-queries-q1q8)
 - [Indic Voice AI Pipeline](#indic-voice-ai-pipeline)
+- [Real-time Voice AI (LiveKit)](#real-time-voice-ai-livekit)
 - [Automated Follow-up Call Engine](#automated-follow-up-call-engine)
+- [Direct Phone Calling](#direct-phone-calling)
 - [Frontend Dashboard](#frontend-dashboard)
 - [API Endpoints](#api-endpoints)
 - [Data Pipeline](#data-pipeline)
@@ -44,6 +46,8 @@ AyuNet is a **graph-powered multilingual health intelligence platform** that:
 3. **Speaks** the diagnosis back in the patient's language
 4. **Calls** patients automatically for follow-ups — asking personalized questions generated from their graph context
 5. **Alerts** doctors in real-time via WebSockets when risk flags trigger during calls
+6. **Converses** in real-time via browser-based Voice AI using LiveKit sessions with Sarvam STT/TTS
+7. **Dials** any phone number directly for ad-hoc patient follow-ups (not limited to registered patients)
 
 ---
 
@@ -62,40 +66,43 @@ AyuNet is a **graph-powered multilingual health intelligence platform** that:
 │  │              (hop-by-hop traversal animation)                    │  │
 │  └──────────────────────────┬───────────────────────────────────────┘  │
 │                             │ REST + WebSocket                         │
-│  ┌──────────────────────────┴───────────────────────────────────────┐  │
-│  │             FollowupsTab  ◄──── WebSocket Alerts                │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────┬───────────────────────────────────────┘
-                                  │
-                    ┌─────────────▼─────────────┐
-                    │    BACKEND (FastAPI)       │
-                    │                           │
-                    │  routers/                 │
-                    │   ├─ diagnosis.py         │
-                    │   ├─ voice.py             │
-                    │   ├─ calls.py             │
-                    │   └─ alerts.py (WS)       │
-                    │                           │
-                    │  services/                │
-                    │   ├─ graph.py (Q1-Q8)     │
-                    │   ├─ nlp.py (Groq LLM)   │
-                    │   ├─ voice.py (Sarvam)    │
-                    │   ├─ caller.py (Twilio)   │
-                    │   └─ followup.py          │
-                    └─────┬────┬────┬───────────┘
-                          │    │    │
-              ┌───────────┘    │    └───────────┐
-              ▼                ▼                ▼
-        ┌──────────┐   ┌────────────┐   ┌────────────┐
-        │  Neo4j   │   │  Groq API  │   │ Sarvam AI  │
-        │  (Graph  │   │ (LLaMA 3   │   │ (STT/TTS)  │
-        │   DB)    │   │   70B)     │   │            │
-        └──────────┘   └────────────┘   └────────────┘
-                                              │
-                                        ┌─────▼─────┐
-                                        │  Twilio   │
-                                        │  (Calls)  │
-                                        └───────────┘
+│  ┌──────────────────────┐  ┌┴─────────────────────────────────────┐   │
+│  │  LiveKitVoice (Voice │  │  FollowupsTab  ◄── WebSocket Alerts  │   │
+│  │  AI Tab — real-time) │  │  + Quick Call (dial any number)      │   │
+│  └──────────┬───────────┘  └──────────────────────────────────────┘   │
+└─────────────┼───────────────────┬───────────────────────────────────────┘
+              │                   │
+┌─────────────▼───────────────────▼─────────────┐
+│           BACKEND (FastAPI)                    │
+│                                               │
+│  routers/                                     │
+│   ├─ diagnosis.py                             │
+│   ├─ voice.py                                 │
+│   ├─ calls.py (+ /call-number)                │
+│   ├─ livekit.py (token, respond, greeting)    │
+│   └─ alerts.py (WS)                           │
+│                                               │
+│  services/                                    │
+│   ├─ graph.py (Q1-Q8)                         │
+│   ├─ nlp.py (Groq LLM)                       │
+│   ├─ voice.py (Sarvam AI — pavithra speaker)  │
+│   ├─ caller.py (Twilio + direct call)         │
+│   ├─ livekit_agent.py (session manager)       │
+│   └─ followup.py                              │
+└─────┬────┬────┬────┬─────────────────┘
+      │    │    │    │
+  ┌───┘    │    │    └────────────┐
+  ▼        ▼    ▼                ▼
+┌──────┐ ┌────────┐ ┌──────────┐ ┌──────────┐
+│Neo4j │ │Groq API│ │Sarvam AI │ │ LiveKit  │
+│(Graph│ │(LLaMA 3│ │(STT/TTS) │ │(WebRTC)  │
+│ DB)  │ │ 70B)   │ │          │ │          │
+└──────┘ └────────┘ └─────┬────┘ └──────────┘
+                          │
+                    ┌─────▼─────┐
+                    │  Twilio   │
+                    │  (Calls)  │
+                    └───────────┘
 ```
 
 ---
@@ -149,8 +156,8 @@ AyuNet is a **graph-powered multilingual health intelligence platform** that:
 | Risk Factors | 10 |
 | Lab Tests | 14 |
 | Protocols | 3 |
-| Patients | 5 |
-| Total Edges | 250+ |
+| Patients | 10 |
+| Total Edges | 350+ |
 
 ---
 
@@ -293,6 +300,44 @@ run_due_followups()
 
 ---
 
+## Real-time Voice AI (LiveKit)
+
+AyuNet includes a browser-based real-time Voice AI interface powered by LiveKit sessions.
+
+### How It Works
+
+```
+1. User clicks "Start Voice Chat" in the Voice AI tab
+         │
+         ▼
+2. Backend creates a LiveKit session (room + token)
+         │
+         ▼
+3. User speaks into the browser microphone
+   MediaRecorder captures audio (WebM) →
+   Sarvam STT transcribes in the detected language
+         │
+         ▼
+4. Groq LLM generates a contextual healthcare response
+   (language-aware, using conversation history)
+         │
+         ▼
+5. Sarvam TTS (bulbul:v1, pavithra speaker) converts response to audio
+         │
+         ▼
+6. Audio plays back in the browser — full duplex conversation loop
+```
+
+### Key Features
+
+- **Session management** — each conversation gets a unique room with full history
+- **Language auto-detection** — detects Hindi, Tamil, Telugu, Bengali, etc. from the first utterance
+- **Structured data extraction** — continuously extracts pain scores, medication adherence, and new symptoms from conversation
+- **Risk flagging** — flags high-risk responses (pain > 7, critical new symptoms) in real-time
+- **Chat-bubble transcript** — visual display of the full conversation with extracted metadata badges
+
+---
+
 ## Automated Follow-up Call Engine
 
 This is AyuNet's most distinctive feature — the graph database doesn't just diagnose, it **calls patients back**.
@@ -334,9 +379,26 @@ This is AyuNet's most distinctive feature — the graph database doesn't just di
 
 ---
 
+## Direct Phone Calling
+
+AyuNet's Follow-ups tab includes a **Quick Call** feature that lets doctors call any phone number directly — not limited to registered patients in Neo4j.
+
+### How It Works
+
+1. Doctor enters a phone number, patient name, and language in the Quick Call card
+2. Backend creates a minimal patient context (no Neo4j lookup required)
+3. Groq generates a personalized greeting in the selected language
+4. Sarvam TTS converts the greeting to speech audio
+5. Twilio places the call with the same dynamic conversation engine used for scheduled follow-ups
+6. Doctor can end the call from the dashboard at any time
+
+This enables ad-hoc follow-ups, new patient intake calls, and emergency outreach to any phone number.
+
+---
+
 ## Frontend Dashboard
 
-The dashboard is a 5-tab clinical interface built with React 19, TypeScript, Tailwind CSS v4, and Cytoscape.js.
+The dashboard is a 6-tab clinical interface built with React 19, TypeScript, Tailwind CSS v4, and Cytoscape.js.
 
 ### Tabs
 
@@ -346,7 +408,8 @@ The dashboard is a 5-tab clinical interface built with React 19, TypeScript, Tai
 | **Drug Check** | `DrugCheckTab.tsx` | Multi-drug selector, interaction severity cards, graph visualization |
 | **Treatment Path** | `TreatmentPathTab.tsx` | Disease selector, pathway cards, directed graph flow |
 | **Risk Analysis** | `RiskAnalysisTab.tsx` | Patient selector, 4-hop risk prediction, concentric ring graph |
-| **Follow-ups** | `FollowupsTab.tsx` | Due patients list, call initiation, demo trigger, alert history |
+| **Follow-ups** | `FollowupsTab.tsx` | Quick Call (any number), due patient list, call initiation, demo trigger, live transcript |
+| **Voice AI** | `LiveKitVoice.tsx` | Real-time browser voice chat, STT/TTS pipeline, risk flagging, chat transcript |
 
 ### Additional UI Features
 
@@ -383,9 +446,22 @@ The dashboard is a 5-tab clinical interface built with React 19, TypeScript, Tai
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/call/initiate` | Initiate a follow-up call to a patient |
+| POST | `/api/calls/call-number` | Call any phone number directly |
 | GET | `/api/call/due` | List patients with due follow-ups |
-| POST | `/api/call/twiml/{patient_id}` | Twilio webhook for call script |
-| POST | `/api/call/gather/{patient_id}/{followup_id}` | Twilio webhook for response collection |
+| POST | `/api/calls/webhook/start` | Twilio webhook for call script |
+| POST | `/api/calls/webhook/{call_sid}/respond` | Twilio webhook for response collection |
+| POST | `/api/calls/end/{call_sid}` | End an active call |
+| POST | `/api/calls/demo-trigger` | One-click demo call trigger |
+
+### LiveKit Voice AI
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/livekit/token` | Generate LiveKit session token |
+| POST | `/api/livekit/greeting` | Generate session greeting audio |
+| POST | `/api/livekit/respond` | Process speech and return AI response |
+| POST | `/api/livekit/end` | End a LiveKit session |
+| GET | `/api/livekit/status` | Check session status |
 
 ### WebSocket
 
@@ -473,17 +549,25 @@ Voice Input → Sarvam STT → Groq LLM (extract) → Neo4j (traverse) → Front
 
 ### Groq (LLM)
 
-- **Model:** LLaMA 3 70B (`llama3-70b-8192`)
+- **Model:** LLaMA 3.3 70B (`llama-3.3-70b-versatile`)
 - **Usage 1:** Symptom extraction — structured JSON output from natural language
 - **Usage 2:** Follow-up script generation — empathetic, language-aware scripts from patient context
 - **Usage 3:** Response parsing — extract structured data (pain score, medication adherence, new symptoms) from voice responses
+- **Usage 4:** Real-time voice AI conversation — contextual healthcare responses during LiveKit sessions
 
 ### Sarvam AI (Voice)
 
 - **STT Model:** `saarika:v2` — Indic language speech recognition
-- **TTS Model:** `bulbul:v1` — Indic language speech synthesis
+- **TTS Model:** `bulbul:v1` — Indic language speech synthesis (speaker: `pavithra`, soft feminine voice)
 - **Languages:** Hindi (`hi`), Tamil (`ta`), Telugu (`te`), Bengali (`bn`), Kannada (`kn`), Marathi (`mr`)
 - **Free tier:** 500 API calls/day
+
+### LiveKit (Real-time Voice)
+
+- **Usage:** Browser-based real-time voice AI conversations
+- **Session management:** In-memory session store with conversation history, extracted data accumulation
+- **Pipeline:** Browser mic → Sarvam STT → Groq LLM → Sarvam TTS → Browser audio playback
+- **Features:** Language auto-detection, risk flagging, structured data extraction per turn
 
 ### Twilio (Calls)
 
@@ -517,3 +601,4 @@ Voice Input → Sarvam STT → Groq LLM (extract) → Neo4j (traverse) → Front
 | **Health Reminder System** | Automated medication reminders via voice in patient's language |
 | **Patient-Reported Data Dashboard** | Analytics on structured follow-up response data |
 | **Offline Mode** | Cached graph responses for areas with poor connectivity |
+| **LiveKit SIP Trunking** | Replace Twilio webhooks with LiveKit SIP for lower-latency phone calls |

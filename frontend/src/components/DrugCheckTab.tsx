@@ -55,7 +55,7 @@ export default function DrugCheckTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search drugs..."
-            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl p-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl p-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
           />
           <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
             {filtered.map((drug) => (
@@ -64,8 +64,8 @@ export default function DrugCheckTab() {
                 onClick={() => toggleDrug(drug)}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                   selected.includes(drug)
-                    ? "bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-300 border border-green-500"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10 hover:border-green-500/50"
+                    ? "bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500"
+                    : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 hover:border-emerald-500/50"
                 }`}
               >
                 {drug}
@@ -141,7 +141,7 @@ export default function DrugCheckTab() {
         {graphNodes.length > 0 ? (
           <GraphView nodes={graphNodes} edges={graphEdges} layout="cola" />
         ) : (
-          <div className="h-full flex items-center justify-center bg-slate-100 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10">
+          <div className="h-full flex items-center justify-center bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10">
             <p className="text-slate-400 dark:text-slate-500 text-sm">
               Select 2+ drugs to visualize interactions
             </p>

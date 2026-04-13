@@ -47,8 +47,8 @@ export default function TreatmentPathTab() {
                 onClick={() => setSelected(d)}
                 className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   selected === d
-                    ? "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 hover:border-orange-500/50"
+                    ? "bg-orange-50 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-400 dark:border-orange-500"
+                    : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 hover:border-orange-500/50"
                 }`}
               >
                 {d}
@@ -129,7 +129,7 @@ export default function TreatmentPathTab() {
             layout="breadthfirst"
           />
         ) : (
-          <div className="h-full flex items-center justify-center bg-slate-100 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10">
+          <div className="h-full flex items-center justify-center bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10">
             <p className="text-slate-400 dark:text-slate-500 text-sm">
               Select a disease to see the treatment pathway
             </p>

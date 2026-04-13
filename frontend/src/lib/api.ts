@@ -76,4 +76,38 @@ export const api = {
     request<any>("/api/calls/demo-trigger", { method: "POST" }),
 
   dueFollowups: () => request<any>("/api/calls/followups/due"),
+
+  // Call by phone number
+  callNumber: (phone_number: string, patient_name?: string, language?: string) =>
+    request<any>("/api/calls/call-number", {
+      method: "POST",
+      body: JSON.stringify({ phone_number, patient_name: patient_name || "Patient", language: language || "hi" }),
+    }),
+
+  // LiveKit
+  livekitToken: (patient_name?: string, language?: string) =>
+    request<any>("/api/livekit/token", {
+      method: "POST",
+      body: JSON.stringify({ patient_name: patient_name || "Patient", language: language || "hi" }),
+    }),
+
+  livekitGreeting: (room_name: string) =>
+    request<any>("/api/livekit/greeting", {
+      method: "POST",
+      body: JSON.stringify({ room_name }),
+    }),
+
+  livekitRespond: (room_name: string, speech_text: string) =>
+    request<any>("/api/livekit/respond", {
+      method: "POST",
+      body: JSON.stringify({ room_name, speech_text }),
+    }),
+
+  livekitEnd: (room_name: string) =>
+    request<any>("/api/livekit/end", {
+      method: "POST",
+      body: JSON.stringify({ room_name }),
+    }),
+
+  livekitStatus: () => request<any>("/api/livekit/status"),
 };

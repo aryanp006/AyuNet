@@ -85,6 +85,49 @@ async def initiate_call(call_prep: dict) -> str:
     return call_sid
 
 
+async def prepare_direct_call(phone_number: str, patient_name: str = "Patient", language: str = "hi", context_notes: str = "") -> dict:
+    """Prepare a call to any phone number (not tied to a patient_id in Neo4j)."""
+    # Build a minimal patient context for the AI conversation
+    context = {
+        "patient_name": patient_name,
+        "language": language,
+        "phone": phone_number,
+        "age": "unknown",
+        "gender": "",
+        "conditions": [],
+        "medications": [],
+        "symptoms": [],
+        "followup_day": 1,
+    }
+    if context_notes:
+        context["notes"] = context_notes
+
+    greeting_text = await nlp_service.generate_greeting(context, language)
+
+    audio_map = {}
+    try:
+        greeting_audio = await voice_service.text_to_speech(greeting_text, language)
+        if greeting_audio and len(greeting_audio) > 0:
+            audio_map["greeting"] = base64.b64encode(greeting_audio).decode()
+    except Exception as e:
+        print(f"[TTS] Direct call greeting TTS failed: {e}")
+
+    call_prep = {
+        "patient_id": f"direct_{phone_number[-4:]}",
+        "patient_name": patient_name,
+        "language": language,
+        "phone": phone_number,
+        "context": context,
+        "greeting_text": greeting_text,
+        "audio": audio_map,
+        "conversation_history": [],
+        "turn_count": 0,
+        "extracted_data": {},
+        "risk_flag": False,
+    }
+    return call_prep
+
+
 def build_greeting_twiml(call_sid: str) -> str:
     """Build TwiML for the opening greeting + first Gather."""
     state = call_states.get(call_sid, {})

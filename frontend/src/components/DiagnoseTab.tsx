@@ -99,7 +99,7 @@ export default function DiagnoseTab() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="e.g. Mujhe do din se bukhar hai, pet mein dard..."
-            className="w-full h-28 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full h-28 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
           />
           <div className="flex gap-2 mt-3">
             <button
@@ -218,7 +218,7 @@ export default function DiagnoseTab() {
             onNodeClick={(_, data) => setSelectedNode(data)}
           />
         ) : (
-          <div className="h-full flex items-center justify-center bg-slate-100 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10">
+          <div className="h-full flex items-center justify-center bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-white/10">
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto mb-4">
                 <Search className="w-8 h-8 text-indigo-500/50" />

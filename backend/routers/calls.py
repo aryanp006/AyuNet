@@ -9,7 +9,7 @@ from fastapi.responses import Response
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-from schemas.models import CallInitiateRequest
+from schemas.models import CallInitiateRequest, CallNumberRequest
 from services import caller as caller_service
 from services import followup as followup_service
 from services import graph as graph_service
@@ -26,6 +26,25 @@ async def initiate_call(req: CallInitiateRequest):
         "call_sid": call_sid,
         "patient_id": req.patient_id,
         "patient_name": call_prep["patient_name"],
+        "status": "initiated",
+        "greeting": call_prep.get("greeting_text", ""),
+    }
+
+
+@router.post("/call-number")
+async def call_number(req: CallNumberRequest):
+    """Call any phone number directly (not tied to a patient in Neo4j)."""
+    call_prep = await caller_service.prepare_direct_call(
+        phone_number=req.phone_number,
+        patient_name=req.patient_name,
+        language=req.language,
+        context_notes=req.context_notes,
+    )
+    call_sid = await caller_service.initiate_call(call_prep)
+    return {
+        "call_sid": call_sid,
+        "phone_number": req.phone_number,
+        "patient_name": req.patient_name,
         "status": "initiated",
         "greeting": call_prep.get("greeting_text", ""),
     }

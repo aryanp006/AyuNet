@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from config import FRONTEND_URL
-from routers import diagnosis, voice, calls, alerts
+from routers import diagnosis, voice, calls, alerts, livekit
 from services import graph as graph_service
 from services import followup as followup_service
 
@@ -74,6 +74,7 @@ app.include_router(diagnosis.router)
 app.include_router(voice.router)
 app.include_router(calls.router)
 app.include_router(alerts.router)
+app.include_router(livekit.router)
 
 
 @app.get("/")

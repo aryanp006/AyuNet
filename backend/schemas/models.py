@@ -26,6 +26,13 @@ class CallInitiateRequest(BaseModel):
     patient_id: str
 
 
+class CallNumberRequest(BaseModel):
+    phone_number: str
+    patient_name: str = "Patient"
+    language: str = "hi"
+    context_notes: str = ""
+
+
 class FollowUpCompleteRequest(BaseModel):
     followup_id: str
     pain_score: int | None = None

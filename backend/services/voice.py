@@ -84,10 +84,10 @@ async def _tts_single(client: httpx.AsyncClient, text: str, lang_code: str) -> b
             "input": text,
             "target_language_code": lang_code,
             "model": "bulbul:v1",
-            "speaker": "meera",
-            "pitch": 0,
-            "pace": 1.0,
-            "loudness": 1.5,
+            "speaker": "pavithra",
+            "pitch": 1,
+            "pace": 0.9,
+            "loudness": 1.3,
             "enable_preprocessing": True,
         },
     )
@@ -142,7 +142,7 @@ def _split_text(text: str, max_chars: int) -> list[str]:
 async def generate_filler_audio(language: str = "hi") -> dict[str, bytes]:
     """Pre-generate filler audio clips for a language. Returns dict of filler_name -> audio_bytes."""
     fillers = {
-        "hi": ["Accha ji...", "Ek second, main check karti hoon...", "Dhanyavaad, bahut accha..."],
+        "hi": ["Jee haan...", "Ek second, main dekh rahi hoon...", "Dhanyavaad, bahut accha..."],
         "ta": ["Sari...", "Oru nimisham paarunga...", "Nandri, romba nalla irukku..."],
         "te": ["Sare...", "Oka second, nenu check chestunna...", "Dhanyavaadalu..."],
         "bn": ["Accha...", "Ek second, ami check korchi...", "Dhonnobad..."],
