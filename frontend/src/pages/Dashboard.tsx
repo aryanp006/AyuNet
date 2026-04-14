@@ -26,7 +26,7 @@ const TABS = [
   { id: "treatment", label: "Treatment Path", icon: ArrowRight, color: "amber" },
   { id: "risks", label: "Risk Analysis", icon: Shield, color: "rose" },
   { id: "followups", label: "Follow-ups", icon: Phone, color: "violet" },
-  { id: "voice", label: "Voice AI", icon: Mic, color: "fuchsia" },
+  { id: "voice", label: "Voice AI", icon: Mic, color: "black" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -55,6 +55,10 @@ const TAB_COLORS: Record<string, { active: string; icon: string }> = {
   fuchsia: {
     active: "bg-fuchsia-50 dark:bg-fuchsia-500/10 border-fuchsia-200 dark:border-fuchsia-500/30 text-fuchsia-700 dark:text-fuchsia-300",
     icon: "text-fuchsia-500",
+  },
+  black: {
+    active: "bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200",
+    icon: "text-slate-800 dark:text-slate-200",
   },
 };
 
@@ -223,29 +227,29 @@ export default function Dashboard() {
                     label="Voice Engine"
                     value="Sarvam AI"
                     sub="bulbul:v2 + saarika:v2"
-                    color="indigo"
+                    color="black"
                   />
                   <KpiCard
                     label="Languages"
                     value="7+"
                     sub="Hindi, Tamil, Telugu, Bengali..."
-                    color="violet"
+                    color="black"
                   />
                   <KpiCard
                     label="Pipeline"
                     value="Real-time"
                     sub="STT → LLM → TTS"
-                    color="fuchsia"
+                    color="black"
                   />
                 </div>
 
                 {/* Trigger button */}
                 <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-2xl p-8 shadow-sm dark:shadow-none flex flex-col items-center gap-6">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 animate-pulse-slow">
+                    <div className="w-20 h-20 rounded-full bg-slate-900 dark:bg-slate-800 flex items-center justify-center shadow-lg shadow-slate-900/20 animate-pulse-slow">
                       <Mic className="w-8 h-8 text-white" />
                     </div>
-                    <div className="absolute -inset-3 rounded-full border-2 border-indigo-500/20 animate-ping" style={{ animationDuration: "2s" }} />
+                    <div className="absolute -inset-3 rounded-full border-2 border-slate-900/20 dark:border-slate-700/50 animate-ping" style={{ animationDuration: "2s" }} />
                   </div>
                   <div className="text-center">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
@@ -257,7 +261,7 @@ export default function Dashboard() {
                   </div>
                   <button
                     onClick={() => setVoiceRoomOpen(true)}
-                    className="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02]"
+                    className="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-slate-900/20 hover:shadow-slate-900/40 hover:scale-[1.02]"
                   >
                     <Mic className="w-4 h-4" />
                     Start Voice Session
@@ -277,7 +281,7 @@ export default function Dashboard() {
                       "Response is spoken back via Sarvam TTS with a natural voice",
                     ].map((step, i) => (
                       <div key={i} className="flex items-start gap-3">
-                        <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                        <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
                           {i + 1}
                         </span>
                         <p className="text-sm text-slate-600 dark:text-slate-400">{step}</p>
@@ -315,11 +319,14 @@ function KpiCard({
       "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10",
     fuchsia:
       "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10",
+    black:
+      "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10",
   };
   const accentMap: Record<string, string> = {
     indigo: "text-indigo-600 dark:text-indigo-400",
     violet: "text-violet-600 dark:text-violet-400",
     fuchsia: "text-fuchsia-600 dark:text-fuchsia-400",
+    black: "text-slate-900 dark:text-white",
   };
 
   return (

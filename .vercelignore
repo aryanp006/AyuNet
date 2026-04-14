@@ -1,6 +1,3 @@
-api/
-backend/
 venv/
 docker-compose.yml
 Dockerfile
-requirements.txt

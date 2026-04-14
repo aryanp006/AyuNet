@@ -10,7 +10,12 @@ import {
   Dna,
   Pill,
   BrainCircuit,
-  Volume2
+  Volume2,
+  Mic,
+  Wifi,
+  Battery,
+  CheckCheck,
+  Shield
 } from 'lucide-react';
 
 export default function App() {
@@ -176,32 +181,170 @@ export default function App() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.3 }}
-            className="relative h-[600px] flex items-center justify-center"
+            className="relative h-[650px] flex items-center justify-center"
           >
-            <div className="relative w-full h-full flex items-center justify-center">
-              {/* Static concentric rings */}
-              <div className="absolute w-[420px] h-[420px] border border-violet-500/15 rounded-full" />
-              <div className="absolute w-72 h-72 border border-indigo-500/20 rounded-full" />
-
-              {/* Floating feature nodes — gentle movement */}
-              <motion.div className="absolute top-1/4 right-[10%] p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl z-20" animate={{ y: [0, -6, 0] }} transition={{ duration: 5, repeat: Infinity }}>
-                <Activity className="h-8 w-8 text-rose-500" />
-                <div className="absolute -top-1 -right-1 h-3 w-3 bg-rose-500 rounded-full animate-ping" />
+            {/* Ambient Base Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-tr from-indigo-500/30 to-fuchsia-500/30 blur-[100px] rounded-full z-0" />
+            
+            {/* Rotating Aura Effect */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] z-0 pointer-events-none">
+              <motion.div 
+                 animate={{ rotate: 360 }}
+                 transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                 className="w-full h-full relative opacity-60"
+              >
+                 <div className="absolute top-0 right-0 w-[250px] h-[250px] rounded-full bg-gradient-to-bl from-amber-500/40 to-rose-500/20 blur-[60px]" />
+                 <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-gradient-to-tr from-emerald-500/40 to-teal-500/20 blur-[80px]" />
+                 <div className="absolute top-1/4 left-1/4 w-[180px] h-[180px] rounded-full bg-gradient-to-tr from-fuchsia-500/50 to-violet-500/30 blur-[50px]" />
+                 
+                 {/* Little rotating particles in the aura */}
+                 <div className="absolute top-10 right-1/4 w-3 h-3 bg-white/40 rounded-full blur-[2px]" />
+                 <div className="absolute bottom-20 left-1/3 w-4 h-4 bg-fuchsia-400/50 rounded-full blur-[3px]" />
+                 <div className="absolute top-1/2 left-10 w-2 h-2 bg-emerald-400/60 rounded-full blur-[1px]" />
               </motion.div>
-
-              <motion.div className="absolute bottom-1/4 left-[10%] p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl z-20" animate={{ y: [0, 8, 0] }} transition={{ duration: 6, repeat: Infinity, delay: 1 }}>
-                <Volume2 className="h-8 w-8 text-amber-500" />
-              </motion.div>
-
-              <motion.div className="absolute top-[10%] left-[20%] p-3 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl z-20" animate={{ y: [0, -5, 0] }} transition={{ duration: 7, repeat: Infinity, delay: 2 }}>
-                <BrainCircuit className="h-6 w-6 text-emerald-500" />
-              </motion.div>
-
-              {/* Central glowing core */}
-              <div className="relative z-10 w-48 h-48 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_80px_rgba(99,102,241,0.4)]">
-                <Network className="h-20 w-20 text-white" />
-                <div className="absolute inset-0 bg-white/20 rounded-full animate-ping blur-sm" style={{ animationDuration: '3s' }} />
+            </div>
+            
+            {/* Floating features */}
+            <motion.div className="absolute top-[15%] -left-[5%] p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-40 hidden md:block" animate={{ y: [0, -8, 0] }} transition={{ duration: 5, repeat: Infinity }}>
+              <div className="flex items-center gap-3 pr-2">
+                <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Volume2 className="h-5 w-5 text-amber-500" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Indic Voice</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white">Sarvam AI</span>
+                </div>
               </div>
+            </motion.div>
+
+            <motion.div className="absolute bottom-[20%] -right-[5%] p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-40 hidden md:block" animate={{ y: [0, 8, 0] }} transition={{ duration: 6, repeat: Infinity, delay: 1 }}>
+              <div className="flex items-center gap-3 pr-2">
+                <div className="h-10 w-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                  <Network className="h-5 w-5 text-indigo-500" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Graph DB</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white">Neo4j Integration</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Mobile Phone Mockup */}
+            <div className="relative w-full max-w-[320px] h-[600px] bg-[#0E0E11] rounded-[3rem] border-[8px] border-slate-900 shadow-[0_0_80px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden z-30 ring-1 ring-white/10 -rotate-6 hover:rotate-0 transition-transform duration-700 ease-out origin-center">
+               {/* Mobile Notch */}
+               <div className="absolute top-0 inset-x-0 h-6 flex justify-center z-50">
+                  <div className="w-24 h-5 bg-slate-900 rounded-b-2xl"></div>
+               </div>
+               
+               {/* Status Bar Mock */}
+               <div className="px-6 pt-3 pb-2 flex justify-between items-center text-[10px] text-white/90 font-bold tracking-wider z-40 relative">
+                 <span>10:42</span>
+                 <div className="flex gap-1.5 items-center">
+                    <Wifi className="w-3.5 h-3.5" />
+                    <Battery className="w-4 h-4" />
+                 </div>
+               </div>
+
+               {/* App Header */}
+               <div className="px-5 py-3 border-b border-white/10 flex items-center gap-3 bg-slate-900/50 backdrop-blur-md relative z-40">
+                 <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 shrink-0">
+                   <Network className="w-4 h-4 text-indigo-400" />
+                 </div>
+                 <div className="flex-1">
+                   <p className="text-white text-[13px] font-bold leading-tight">AyuNet Hub</p>
+                   <p className="text-emerald-400 text-[10px] flex items-center gap-1 font-semibold uppercase tracking-widest mt-0.5">
+                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                     online
+                   </p>
+                 </div>
+               </div>
+
+               {/* Chat Body */}
+               <div className="flex-1 p-4 flex flex-col gap-4 overflow-y-auto relative no-scrollbar bg-[#0E0E11]">
+                 {/* subtle background glow */}
+                 <div className="absolute top-20 left-1/2 -translate-x-1/2 w-48 h-48 bg-indigo-500/10 blur-[40px] rounded-full pointer-events-none" />
+                 
+                 {/* Security notice */}
+                 <div className="flex justify-center mb-2">
+                    <span className="text-[9px] text-white/40 bg-white/5 px-3 py-1 rounded-full flex items-center gap-1 font-medium">
+                      <Shield className="w-2.5 h-2.5" /> Messages are end-to-end encrypted
+                    </span>
+                 </div>
+
+                 {/* Bot message */}
+                 <div className="bg-slate-800/80 rounded-2xl rounded-tl-sm p-3.5 pb-5 text-[12px] text-white max-w-[85%] border border-white/5 relative z-10 shadow-lg">
+                    <p className="mb-1 leading-relaxed text-sm"><span className="text-xl inline-block mr-1">🙏</span> नमस्ते! मैं AyuNet AI हूँ।</p>
+                    <p className="leading-relaxed opacity-90 text-[11px]">आप आज कैसा महसूस कर रहे हैं?</p>
+                    <span className="text-[9px] text-white/40 absolute bottom-1.5 right-2 font-medium">10:42 am</span>
+                 </div>
+
+                 {/* User Voice Message Mock with transcription */}
+                 <div className="bg-emerald-600 rounded-2xl rounded-tr-sm p-3 text-[11px] text-white max-w-[90%] self-end relative z-10 shadow-lg flex flex-col gap-2 mt-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                         <Volume2 className="w-4 h-4 text-white" />
+                      </div>
+                      {/* waveform mock */}
+                      <div className="flex gap-[3px] items-center h-4">
+                         <span className="w-[2px] h-2 bg-white/70 rounded-full" />
+                         <span className="w-[2px] h-3 bg-white/90 rounded-full" />
+                         <span className="w-[2px] h-5 bg-white rounded-full lg:animate-pulse" />
+                         <span className="w-[2px] h-3 bg-white/80 rounded-full" />
+                         <span className="w-[2px] h-2 bg-white/60 rounded-full" />
+                         <span className="w-[2px] h-4 bg-white/90 rounded-full" />
+                         <span className="w-[2px] h-2 bg-white/70 rounded-full" />
+                      </div>
+                      <span className="ml-2 opacity-90 font-bold text-[10px]">0:12</span>
+                    </div>
+                    {/* Transcription */}
+                    <div className="mt-1 pt-2 border-t border-white/20">
+                      <p className="opacity-70 text-[9px] uppercase tracking-wider mb-0.5">Live Transcription:</p>
+                      <p className="italic font-medium leading-relaxed">"मुझे कल रात से बुखार है और पेट में भी दर्द हो रहा है।"</p>
+                    </div>
+                    <span className="text-[9px] text-emerald-200 absolute -bottom-5 right-1 flex items-center gap-0.5 font-medium">
+                       10:42 am <CheckCheck className="w-3 h-3" />
+                    </span>
+                 </div>
+
+                 {/* Bot Followup processing */}
+                 <div className="mt-7 bg-indigo-900/40 rounded-2xl rounded-tl-sm p-3 text-[11px] text-indigo-50 max-w-[95%] border border-indigo-500/20 relative z-10 shadow-lg">
+                    <div className="flex items-start gap-2 mb-3 pb-2 border-b border-indigo-500/20">
+                      <BrainCircuit className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-indigo-300 text-[10px] uppercase tracking-wider mb-1">Graph Diagnosis Match</p>
+                        <p className="text-[10px] opacity-90 font-medium">Symptoms: <span className="bg-indigo-500/30 px-1 py-0.5 rounded text-indigo-100">Fever</span> <span className="bg-indigo-500/30 px-1 py-0.5 rounded text-indigo-100">Abdominal Pain</span></p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                       <div className="bg-slate-900/60 rounded-xl p-2.5 border border-white/5 flex justify-between items-center hover:bg-slate-800 transition-colors cursor-pointer">
+                         <div>
+                           <p className="font-bold text-white text-[12px] mb-0.5">Viral Gastroenteritis</p>
+                           <p className="text-[10px] text-emerald-400 font-medium">Primary care advised</p>
+                         </div>
+                         <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] px-2 py-0.5 rounded-full font-bold">96%</span>
+                       </div>
+                       
+                       <div className="bg-slate-900/60 rounded-xl p-2.5 border border-white/5 flex justify-between items-center hover:bg-slate-800 transition-colors cursor-pointer">
+                         <div>
+                           <p className="font-bold text-white text-[12px] mb-0.5">Typhoid Fever</p>
+                           <p className="text-[10px] text-amber-300 font-medium">Prescribe Widal Test</p>
+                         </div>
+                         <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] px-2 py-0.5 rounded-full font-bold">82%</span>
+                       </div>
+                    </div>
+                 </div>
+               </div>
+
+               {/* Bottom Input Area Mock */}
+               <div className="p-3 pt-2 pb-5 border-t border-white/10 bg-[#0E0E11]/95 relative z-40">
+                 <div className="w-full bg-slate-800 rounded-full pl-4 pr-1.5 py-1.5 border border-white/10 flex items-center justify-between shadow-inner">
+                    <span className="text-[12px] text-slate-400 font-medium">Type a message...</span>
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-emerald-500/20 cursor-pointer">
+                       <Mic className="w-4 h-4 text-white" />
+                    </div>
+                 </div>
+               </div>
             </div>
           </motion.div>
         </div>
